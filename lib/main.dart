@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'data/finance_store.dart';
 import 'data/lot_store.dart';
 import 'data/settings_store.dart';
 import 'ui/home_shell.dart';
@@ -10,13 +11,15 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final settings = await FarmSettings.load();
   final lots = await LotStore.load();
-  runApp(NafaApp(settings: settings, lots: lots));
+  final finance = await FinanceStore.load();
+  runApp(NafaApp(settings: settings, lots: lots, finance: finance));
 }
 
 class NafaApp extends StatelessWidget {
-  const NafaApp({super.key, required this.settings, required this.lots, this.today});
+  const NafaApp({super.key, required this.settings, required this.lots, required this.finance, this.today});
   final FarmSettings settings;
   final LotStore lots;
+  final FinanceStore finance;
 
   /// Date du jour imposée (tests). Par défaut : date du téléphone.
   final DateTime? today;
@@ -33,7 +36,7 @@ class NafaApp extends StatelessWidget {
       home: ListenableBuilder(
         listenable: settings,
         builder: (context, _) => settings.isConfigured
-            ? HomeShell(settings: settings, lots: lots, today: today)
+            ? HomeShell(settings: settings, lots: lots, finance: finance, today: today)
             : OnboardingScreen(settings: settings),
       ),
     );

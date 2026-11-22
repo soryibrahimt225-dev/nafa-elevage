@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nafa_elevage/data/finance_store.dart';
 import 'package:nafa_elevage/data/lot_store.dart';
 import 'package:nafa_elevage/data/settings_store.dart';
 import 'package:nafa_elevage/main.dart';
@@ -36,7 +37,8 @@ void main() {
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
     final lots = await t.runAsync(LotStore.load);
-    await t.pumpWidget(NafaApp(settings: s, lots: lots!, today: today));
+    final finance = await t.runAsync(FinanceStore.load);
+    await t.pumpWidget(NafaApp(settings: s, lots: lots!, finance: finance!, today: today));
     await t.pumpAndSettle();
   }
 
@@ -188,5 +190,58 @@ void main() {
     await t.pumpAndSettle();
     await openMenu(t, 'tableauDeBord');
     expect(find.text('75,0\u00A0%'), findsOneWidget); // taux d'éclosion du tableau de bord
+  });
+
+  testWidgets('Vente de sujets liée au lot : effectif, comptabilité et tableau de bord', (t) async {
+    final s = await freshSettings({'nafa.production': 'chair'});
+    await pumpPhone(t, s);
+    await openMenu(t, 'lots');
+    await t.tap(find.byKey(const ValueKey('nouveau-lot')));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Cobb 500'));
+    await t.pump();
+    await enterKey(t, 'effectif', '200');
+    await tapKey(t, 'enregistrer');
+    await t.pumpAndSettle();
+    await t.pump(const Duration(seconds: 4));
+    await t.pumpAndSettle();
+
+    await openMenu(t, 'ventes');
+    expect(find.text('Aucune vente'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('nouvelle-vente')));
+    await t.pumpAndSettle();
+    // Lot proposé pour une vente de sujets
+    await t.tap(find.text('Aucun lot'));
+    await t.pumpAndSettle();
+    await t.tap(find.textContaining('CHA-26-001 · Cobb 500').last);
+    await t.pumpAndSettle();
+    await enterKey(t, 'quantite', '50');
+    await enterKey(t, 'prix', '3500');
+    expect(find.text('175\u00A0000\u00A0FCFA'), findsOneWidget); // montant calculé
+    await tapKey(t, 'paye-totalite'); // paiement partiel
+    await enterKey(t, 'encaisse', '100000');
+    await tapKey(t, 'enregistrer');
+    await t.pumpAndSettle();
+    await t.pump(const Duration(seconds: 4));
+    await t.pumpAndSettle();
+    expect(find.textContaining('reste à recouvrer : 75\u00A0000\u00A0FCFA'), findsOneWidget);
+
+    await openMenu(t, 'lots');
+    expect(find.textContaining('150 sujets sur 200'), findsOneWidget);
+
+    await openMenu(t, 'depenses');
+    await t.tap(find.byKey(const ValueKey('nouvelle-depense')));
+    await t.pumpAndSettle();
+    await enterKey(t, 'prix', '28500');
+    await tapKey(t, 'enregistrer');
+    await t.pumpAndSettle();
+    await t.pump(const Duration(seconds: 4));
+    await t.pumpAndSettle();
+
+    await openMenu(t, 'comptabilite');
+    expect(find.text('146\u00A0500\u00A0FCFA'), findsWidgets); // bénéfice 175 000 − 28 500
+    await openMenu(t, 'tableauDeBord');
+    expect(find.text('175\u00A0000\u00A0FCFA'), findsOneWidget);
+    expect(find.text('146\u00A0500\u00A0FCFA'), findsOneWidget);
   });
 }

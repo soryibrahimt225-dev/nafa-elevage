@@ -15,21 +15,25 @@ enum MovementType {
 }
 
 class Movement {
-  const Movement({required this.date, required this.type, required this.count, this.note = ''});
+  const Movement({required this.date, required this.type, required this.count, this.note = '', this.ref});
 
   final DateTime date;
   final MovementType type;
   final int count;
   final String note;
 
+  /// Opération liée (ex. identifiant de la vente qui a créé cette sortie).
+  final String? ref;
+
   Map<String, Object?> toJson() =>
-      {'date': _d(date), 'type': type.name, 'count': count, 'note': note};
+      {'date': _d(date), 'type': type.name, 'count': count, 'note': note, if (ref != null) 'ref': ref};
 
   factory Movement.fromJson(Map<String, Object?> j) => Movement(
         date: DateTime.parse(j['date']! as String),
         type: MovementType.values.byName(j['type']! as String),
         count: j['count']! as int,
         note: (j['note'] as String?) ?? '',
+        ref: j['ref'] as String?,
       );
 }
 
@@ -108,6 +112,13 @@ class AnimalLot {
     }
     movements.add(m);
     movements.sort((a, b) => a.date.compareTo(b.date));
+  }
+
+  /// Retire les sorties créées par une opération supprimée (ex. une vente).
+  bool removeMovementsFor(String ref) {
+    final before = movements.length;
+    movements.removeWhere((m) => m.ref == ref);
+    return movements.length != before;
   }
 
   Map<String, Object?> toJson() => {

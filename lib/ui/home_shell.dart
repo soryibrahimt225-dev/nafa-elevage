@@ -1,10 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../data/finance_store.dart';
 import '../data/lot_store.dart';
 import '../data/settings_store.dart';
 import '../domain/production.dart';
 import 'animal_lots_screen.dart';
 import 'dashboard_screen.dart';
+import 'finance_screens.dart';
 import 'icons.dart';
 import 'incubation_lots_screen.dart';
 import 'incubation_calculator.dart';
@@ -14,9 +16,10 @@ import 'theme.dart';
 /// Structure principale : menu dynamique selon la production choisie.
 /// Écran large : menu latéral fixe. Téléphone : menu dans un tiroir.
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key, required this.settings, required this.lots, this.today});
+  const HomeShell({super.key, required this.settings, required this.lots, required this.finance, this.today});
   final FarmSettings settings;
   final LotStore lots;
+  final FinanceStore finance;
   final DateTime? today;
 
   @override
@@ -49,6 +52,7 @@ class _HomeShellState extends State<HomeShell> {
       module: _current,
       settings: widget.settings,
       lots: widget.lots,
+      finance: widget.finance,
       today: widget.today ?? DateTime.now(),
     );
 
@@ -127,18 +131,27 @@ class _ModuleMenu extends StatelessWidget {
 }
 
 class _ModulePage extends StatelessWidget {
-  const _ModulePage({required this.module, required this.settings, required this.lots, required this.today});
+  const _ModulePage({required this.module, required this.settings, required this.lots, required this.finance, required this.today});
   final AppModule module;
   final FarmSettings settings;
   final LotStore lots;
+  final FinanceStore finance;
   final DateTime today;
 
   @override
   Widget build(BuildContext context) {
+    final ctx = FinanceContext(
+        finance: finance, lots: lots, production: settings.production!, options: settings.options, today: today);
     switch (module) {
       case AppModule.tableauDeBord:
         return DashboardScreen(
-            store: lots, production: settings.production!, options: settings.options, today: today);
+            store: lots, finance: finance, production: settings.production!, options: settings.options, today: today);
+      case AppModule.ventes:
+        return SalesScreen(ctx: ctx);
+      case AppModule.depenses:
+        return ExpensesScreen(ctx: ctx);
+      case AppModule.comptabilite:
+        return AccountingScreen(ctx: ctx);
       case AppModule.lots:
         return AnimalLotsScreen(store: lots, production: settings.production!, today: today);
       case AppModule.lotsOeufs:

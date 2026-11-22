@@ -75,6 +75,15 @@ class LotStore extends ChangeNotifier {
   /// À appeler après une modification d'un lot (sortie, éclosion, notes…).
   Future<void> changed() => _save();
 
+  /// Annule les sorties liées à une opération supprimée.
+  Future<void> removeMovementsFor(String ref) async {
+    var changed = false;
+    for (final l in _animal) {
+      changed = l.removeMovementsFor(ref) || changed;
+    }
+    if (changed) await _save();
+  }
+
   Future<void> deleteAnimalLot(String id) async {
     _animal.removeWhere((l) => l.id == id);
     await _save();

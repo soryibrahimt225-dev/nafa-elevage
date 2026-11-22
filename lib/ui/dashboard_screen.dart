@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../data/finance_store.dart';
 import '../data/lot_store.dart';
+import '../domain/finance.dart';
 import '../domain/format.dart';
 import '../domain/lots.dart';
 import '../domain/production.dart';
@@ -14,11 +16,13 @@ class DashboardScreen extends StatelessWidget {
   const DashboardScreen({
     super.key,
     required this.store,
+    required this.finance,
     required this.production,
     required this.options,
     required this.today,
   });
   final LotStore store;
+  final FinanceStore finance;
   final ProductionType production;
   final Set<OptionalFeature> options;
   final DateTime today;
@@ -31,12 +35,15 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: store,
+      listenable: Listenable.merge([store, finance]),
       builder: (context, _) {
+        final total = finance.accounting().global;
+        final month = finance.accounting(Period.month(today)).global;
         final kpis = <(String, String, String?)>[
-          ('Chiffre d’affaires', formatFcfa(0), 'ventes : module à venir'),
-          ('Dépenses', formatFcfa(0), 'dépenses : module à venir'),
-          ('Bénéfice estimé', formatFcfa(0), null),
+          ('Chiffre d’affaires', formatFcfa(total.sales), 'ce mois-ci : ${formatFcfa(month.sales)}'),
+          ('Dépenses', formatFcfa(total.expenses), 'ce mois-ci : ${formatFcfa(month.expenses)}'),
+          ('Bénéfice estimé', formatFcfa(total.profit),
+              total.toCollect > 0 ? 'reste à recouvrer : ${formatFcfa(total.toCollect)}' : 'marge : ${formatPercent(total.margin)}'),
         ];
         final children = <Widget>[];
 
