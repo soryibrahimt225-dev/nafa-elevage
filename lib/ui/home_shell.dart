@@ -1,9 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../data/lot_store.dart';
 import '../data/settings_store.dart';
-import '../domain/format.dart';
 import '../domain/production.dart';
+import 'animal_lots_screen.dart';
+import 'dashboard_screen.dart';
 import 'icons.dart';
+import 'incubation_lots_screen.dart';
 import 'incubation_calculator.dart';
 import 'settings_screen.dart';
 import 'theme.dart';
@@ -11,8 +14,9 @@ import 'theme.dart';
 /// Structure principale : menu dynamique selon la production choisie.
 /// Écran large : menu latéral fixe. Téléphone : menu dans un tiroir.
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key, required this.settings, this.today});
+  const HomeShell({super.key, required this.settings, required this.lots, this.today});
   final FarmSettings settings;
+  final LotStore lots;
   final DateTime? today;
 
   @override
@@ -44,6 +48,7 @@ class _HomeShellState extends State<HomeShell> {
     final body = _ModulePage(
       module: _current,
       settings: widget.settings,
+      lots: widget.lots,
       today: widget.today ?? DateTime.now(),
     );
 
@@ -122,99 +127,31 @@ class _ModuleMenu extends StatelessWidget {
 }
 
 class _ModulePage extends StatelessWidget {
-  const _ModulePage({required this.module, required this.settings, required this.today});
+  const _ModulePage({required this.module, required this.settings, required this.lots, required this.today});
   final AppModule module;
   final FarmSettings settings;
+  final LotStore lots;
   final DateTime today;
 
   @override
   Widget build(BuildContext context) {
     switch (module) {
       case AppModule.tableauDeBord:
-        return _Dashboard(settings: settings, today: today);
-      case AppModule.calendrierCouvaison:
+        return DashboardScreen(
+            store: lots, production: settings.production!, options: settings.options, today: today);
+      case AppModule.lots:
+        return AnimalLotsScreen(store: lots, production: settings.production!, today: today);
+      case AppModule.lotsOeufs:
       case AppModule.couvaison:
-        return IncubationCalculator(today: today);
+        return IncubationLotsScreen(store: lots, today: today);
+      case AppModule.eclosions:
+        return IncubationLotsScreen(store: lots, today: today, onlyToRecord: true);
+      case AppModule.calendrierCouvaison:
+        return IncubationCalculator(today: today, store: lots);
       case AppModule.parametres:
         return SettingsScreen(settings: settings);
       default:
         return _Placeholder(module: module);
-    }
-  }
-}
-
-class _Dashboard extends StatelessWidget {
-  const _Dashboard({required this.settings, required this.today});
-  final FarmSettings settings;
-  final DateTime today;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = settings.production!;
-    final kpis = _kpisFor(p);
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Text(formatLongDate(today).toUpperCase(),
-            style: const TextStyle(fontSize: 12, color: NafaColors.textMuted, letterSpacing: 1)),
-        const SizedBox(height: 4),
-        Text(p.label, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
-        Text(p.description, style: const TextStyle(color: NafaColors.textMuted)),
-        const SizedBox(height: 16),
-        LayoutBuilder(builder: (context, c) {
-          final cols = c.maxWidth >= 900 ? 4 : 2;
-          const gap = 10.0;
-          final w = (c.maxWidth - gap * (cols - 1)) / cols;
-          return Wrap(spacing: gap, runSpacing: gap, children: [
-            for (final k in kpis)
-              SizedBox(
-                width: w,
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(k.$1, style: const TextStyle(fontSize: 13, color: NafaColors.textMuted)),
-                      const SizedBox(height: 6),
-                      Text(k.$2, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-                    ]),
-                  ),
-                ),
-              ),
-          ]);
-        }),
-        const SizedBox(height: 16),
-        const Card(
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Text(
-              'Aucune donnée enregistrée pour l’instant. Les chiffres apparaîtront dès '
-              'la saisie du premier lot, de la première vente ou de la première dépense.',
-              style: TextStyle(color: NafaColors.textMuted),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Indicateurs prioritaires par production (valeurs vides tant que rien
-  /// n'est saisi : aucune donnée inventée).
-  List<(String, String)> _kpisFor(ProductionType p) {
-    final money = formatFcfa(0);
-    final common = [
-      ('Chiffre d’affaires', money),
-      ('Dépenses', money),
-      ('Bénéfice estimé', money),
-    ];
-    switch (p) {
-      case ProductionType.chair:
-        return [...common, ('Sujets présents', '0 sujet'), ('Lots en cours', '0'), ('Mortalité', '—')];
-      case ProductionType.ameliorees:
-        return [...common, ('Sujets présents', '0 sujet'), ('Lots en cours', '0'), ('Mortalité', '—')];
-      case ProductionType.pondeuses:
-        return [...common, ('Sujets en ponte', '0 sujet'), ('Œufs du jour', '0 œuf'), ('Taux de ponte', '—')];
-      case ProductionType.couveuse:
-        return [...common, ('Œufs en incubation', '0 œuf'), ('Lots en cours', '0'), ('Taux d’éclosion', '—')];
     }
   }
 }

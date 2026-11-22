@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nafa_elevage/data/lot_store.dart';
 import 'package:nafa_elevage/data/settings_store.dart';
 import 'package:nafa_elevage/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,6 +8,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 Future<FarmSettings> freshSettings([Map<String, Object> values = const {}]) async {
   SharedPreferences.setMockInitialValues(values);
   return FarmSettings.load();
+}
+
+Future<void> enterKey(WidgetTester t, String key, String text) async {
+  final f = find.byKey(ValueKey(key));
+  await t.scrollUntilVisible(f, 120, scrollable: find.byType(Scrollable).first);
+  await t.ensureVisible(f);
+  await t.pumpAndSettle();
+  await t.enterText(find.descendant(of: f, matching: find.byType(EditableText)), text);
+  await t.pump();
 }
 
 Future<void> tapKey(WidgetTester t, String key) async {
@@ -25,7 +35,8 @@ void main() {
     t.view.physicalSize = const Size(360, 740);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
-    await t.pumpWidget(NafaApp(settings: s, today: today));
+    final lots = await t.runAsync(LotStore.load);
+    await t.pumpWidget(NafaApp(settings: s, lots: lots!, today: today));
     await t.pumpAndSettle();
   }
 
@@ -77,6 +88,8 @@ void main() {
     await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('menu-calendrierCouvaison')));
     await t.pumpAndSettle();
+    await t.scrollUntilVisible(find.text('13 décembre 2026 · Jour 21'), 150,
+        scrollable: find.byType(Scrollable).first);
     expect(find.text('8 décembre 2026 · Jour 16'), findsOneWidget);
     expect(find.text('13 décembre 2026 · Jour 21'), findsOneWidget);
   });
@@ -86,5 +99,94 @@ void main() {
     await pumpPhone(t, s);
     expect(find.text('Pondeuses'), findsWidgets);
     expect(find.text('Quelle production voulez-vous gérer ?'), findsNothing);
+  });
+
+  Future<void> openMenu(WidgetTester t, String module) async {
+    await t.tap(find.byType(DrawerButton));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(ValueKey('menu-$module')));
+    await t.pumpAndSettle();
+  }
+
+  testWidgets('Créer un lot de chair, puis enregistrer une mortalité', (t) async {
+    final s = await freshSettings({'nafa.production': 'chair'});
+    await pumpPhone(t, s);
+    await openMenu(t, 'lots');
+    expect(find.text('Aucun lot'), findsOneWidget);
+
+    await t.tap(find.byKey(const ValueKey('nouveau-lot')));
+    await t.pumpAndSettle();
+    expect(find.text('CHA-26-001'), findsOneWidget); // code automatique
+    await t.tap(find.text('Cobb 500')); // choix rapide de la race
+    await t.pump();
+    await enterKey(t, 'effectif', '500');
+    await tapKey(t, 'enregistrer');
+    await t.pumpAndSettle();
+    expect(find.textContaining('CHA-26-001 · Cobb 500'), findsOneWidget);
+    expect(find.textContaining('500 sujets sur 500'), findsOneWidget);
+
+    await t.tap(find.byKey(const ValueKey('lot-CHA-26-001')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('saisir-sortie')));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('nombre-sortie')), '12');
+    await t.tap(find.byKey(const ValueKey('valider-sortie')));
+    await t.pumpAndSettle();
+    expect(find.text('488 sujets'), findsOneWidget);
+    expect(find.textContaining('2,4\u00A0%'), findsOneWidget);
+  });
+
+  testWidgets('Saisie impossible : plus de morts que de sujets', (t) async {
+    final s = await freshSettings({'nafa.production': 'pondeuses'});
+    await pumpPhone(t, s);
+    await openMenu(t, 'lots');
+    await t.tap(find.byKey(const ValueKey('nouveau-lot')));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('race')), 'ISA Brown');
+    await enterKey(t, 'effectif', '10');
+    await tapKey(t, 'enregistrer');
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('lot-PON-26-001')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('saisir-sortie')));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('nombre-sortie')), '11');
+    await t.tap(find.byKey(const ValueKey('valider-sortie')));
+    await t.pumpAndSettle();
+    expect(find.text('Maximum : 10'), findsOneWidget);
+  });
+
+  testWidgets('Couveuse : mettre des œufs, voir les dates, saisir l’éclosion', (t) async {
+    final s = await freshSettings({'nafa.production': 'couveuse'});
+    await pumpPhone(t, s);
+    await openMenu(t, 'lotsOeufs');
+    await t.tap(find.byKey(const ValueKey('nouveau-lot-oeufs')));
+    await t.pumpAndSettle();
+    expect(find.text('BUR-26-001'), findsOneWidget);
+    await enterKey(t, 'oeufs', '120');
+    await t.pump();
+    await t.scrollUntilVisible(find.text('13 décembre 2026 · jour 21'), 120,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.text('8 décembre 2026 · jour 16'), findsOneWidget);
+    await tapKey(t, 'enregistrer');
+    await t.pumpAndSettle();
+    expect(find.textContaining('BUR-26-001 · Goliath'), findsOneWidget);
+    await t.pump(const Duration(seconds: 5)); // le message de confirmation disparaît
+    await t.pumpAndSettle();
+
+    await t.tap(find.byKey(const ValueKey('lot-BUR-26-001')));
+    await t.pumpAndSettle();
+    await tapKey(t, 'saisir-eclosion');
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('eclos')), '90');
+    await t.enterText(find.byKey(const ValueKey('morts')), '3');
+    await t.tap(find.byKey(const ValueKey('valider-eclosion')));
+    await t.pumpAndSettle();
+    expect(find.text('75,0\u00A0%'), findsOneWidget);
+    expect(find.text('87'), findsOneWidget); // poussins vivants
+    await t.tap(find.byType(BackButton));
+    await t.pumpAndSettle();
+    await openMenu(t, 'tableauDeBord');
+    expect(find.text('75,0\u00A0%'), findsOneWidget); // taux d'éclosion du tableau de bord
   });
 }
