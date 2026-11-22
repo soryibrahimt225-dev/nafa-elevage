@@ -1,14 +1,14 @@
 import 'package:material_ui/material_ui.dart';
 
-import '../data/finance_store.dart';
-import '../data/lot_store.dart';
-import '../data/settings_store.dart';
+import '../data/app_data.dart';
 import '../domain/production.dart';
 import 'animal_lots_screen.dart';
 import 'dashboard_screen.dart';
 import 'finance_screens.dart';
+import 'health_screen.dart';
 import 'icons.dart';
 import 'incubation_lots_screen.dart';
+import 'monthly_production_screen.dart';
 import 'incubation_calculator.dart';
 import 'settings_screen.dart';
 import 'theme.dart';
@@ -16,10 +16,8 @@ import 'theme.dart';
 /// Structure principale : menu dynamique selon la production choisie.
 /// Écran large : menu latéral fixe. Téléphone : menu dans un tiroir.
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key, required this.settings, required this.lots, required this.finance, this.today});
-  final FarmSettings settings;
-  final LotStore lots;
-  final FinanceStore finance;
+  const HomeShell({super.key, required this.data, this.today});
+  final AppData data;
   final DateTime? today;
 
   @override
@@ -33,10 +31,10 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    final modules = widget.settings.modules;
+    final modules = widget.data.settings.modules;
     if (!modules.contains(_current)) _current = AppModule.tableauDeBord;
     final wide = MediaQuery.sizeOf(context).width >= 900;
-    final production = widget.settings.production!;
+    final production = widget.data.settings.production!;
 
     final menu = _ModuleMenu(
       production: production,
@@ -50,9 +48,7 @@ class _HomeShellState extends State<HomeShell> {
 
     final body = _ModulePage(
       module: _current,
-      settings: widget.settings,
-      lots: widget.lots,
-      finance: widget.finance,
+      data: widget.data,
       today: widget.today ?? DateTime.now(),
     );
 
@@ -131,21 +127,24 @@ class _ModuleMenu extends StatelessWidget {
 }
 
 class _ModulePage extends StatelessWidget {
-  const _ModulePage({required this.module, required this.settings, required this.lots, required this.finance, required this.today});
+  const _ModulePage({required this.module, required this.data, required this.today});
   final AppModule module;
-  final FarmSettings settings;
-  final LotStore lots;
-  final FinanceStore finance;
+  final AppData data;
   final DateTime today;
 
   @override
   Widget build(BuildContext context) {
+    final settings = data.settings, lots = data.lots, finance = data.finance;
     final ctx = FinanceContext(
         finance: finance, lots: lots, production: settings.production!, options: settings.options, today: today);
     switch (module) {
       case AppModule.tableauDeBord:
         return DashboardScreen(
-            store: lots, finance: finance, production: settings.production!, options: settings.options, today: today);
+            store: lots, finance: finance, health: data.health, production: settings.production!, options: settings.options, today: today);
+      case AppModule.sante:
+        return HealthScreen(health: data.health, lots: lots, production: settings.production!, today: today);
+      case AppModule.productionMensuelle:
+        return MonthlyProductionScreen(store: lots);
       case AppModule.ventes:
         return SalesScreen(ctx: ctx);
       case AppModule.depenses:

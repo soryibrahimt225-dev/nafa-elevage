@@ -1,7 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nafa_elevage/data/finance_store.dart';
-import 'package:nafa_elevage/data/lot_store.dart';
+import 'package:nafa_elevage/data/app_data.dart';
 import 'package:nafa_elevage/data/settings_store.dart';
 import 'package:nafa_elevage/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -36,9 +35,8 @@ void main() {
     t.view.physicalSize = const Size(360, 740);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
-    final lots = await t.runAsync(LotStore.load);
-    final finance = await t.runAsync(FinanceStore.load);
-    await t.pumpWidget(NafaApp(settings: s, lots: lots!, finance: finance!, today: today));
+    final data = await t.runAsync(AppData.load);
+    await t.pumpWidget(NafaApp(data: data!, today: today));
     await t.pumpAndSettle();
   }
 
@@ -53,7 +51,7 @@ void main() {
     await tapKey(t, 'continuer');
     await t.pumpAndSettle();
 
-    expect(s.isConfigured, isTrue);
+    expect(find.byType(DrawerButton), findsOneWidget);
     await t.tap(find.byType(DrawerButton));
     await t.pumpAndSettle();
     expect(find.text('Santé et vaccination'), findsNothing);
@@ -243,5 +241,24 @@ void main() {
     await openMenu(t, 'tableauDeBord');
     expect(find.text('175\u00A0000\u00A0FCFA'), findsOneWidget);
     expect(find.text('146\u00A0500\u00A0FCFA'), findsOneWidget);
+  });
+
+  testWidgets('Santé : prévoir un soin en retard, il apparaît au tableau de bord', (t) async {
+    final s = await freshSettings({
+      'nafa.production': 'ameliorees',
+      'nafa.lots.v1': '{"animal":[{"id":"1","code":"AME-26-001","production":"ameliorees","breed":"Goliath",'
+          '"startDate":"2026-10-01","initialCount":100,"movements":[]}],"incubation":[]}',
+    });
+    await pumpPhone(t, s);
+    await openMenu(t, 'sante');
+    await t.tap(find.byKey(const ValueKey('nouveau-soin')));
+    await t.pumpAndSettle();
+    await enterKey(t, 'soin-nom', 'Vaccin A');
+    expect(find.text('Âge du lot à cette date : 52 jours'), findsOneWidget);
+    await tapKey(t, 'enregistrer');
+    await t.pumpAndSettle();
+    expect(find.text('Aujourd’hui'), findsOneWidget);
+    await openMenu(t, 'tableauDeBord');
+    expect(find.textContaining('AME-26-001 · Vaccin A'), findsOneWidget);
   });
 }

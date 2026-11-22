@@ -352,3 +352,61 @@ class IncubationSummary {
   double? get hatchRate => eggsWithResult == 0 ? null : hatched / eggsWithResult;
   double? get mortalityRate => hatched == 0 ? null : chickDeaths / hatched;
 }
+
+/// Ligne de la production mensuelle de la couveuse.
+class MonthlyHatch {
+  MonthlyHatch(this.month);
+  final DateTime month;
+  int lots = 0, eggsSet = 0, eggsWithResult = 0, hatched = 0, deaths = 0, alive = 0;
+
+  int get unhatched => eggsWithResult - hatched;
+
+  /// Taux calculé sur les seuls lots dont le résultat est saisi (audit, point 6).
+  double? get hatchRate => eggsWithResult == 0 ? null : hatched / eggsWithResult;
+  double? get mortalityRate => hatched == 0 ? null : deaths / hatched;
+
+  void add(IncubationLot l) {
+    lots++;
+    eggsSet += l.eggsSet;
+    if (l.hasResult) {
+      eggsWithResult += l.eggsSet;
+      hatched += l.hatched!;
+      deaths += l.chickDeaths ?? 0;
+      alive += l.alive!;
+    }
+  }
+}
+
+/// Production mensuelle, par mois d'éclosion prévue (règle du classeur),
+/// tous les mois entre le premier et le dernier compris.
+/// [owner] : filtre producteur ou client ; `null` = tous les lots.
+List<MonthlyHatch> monthlyProduction(Iterable<IncubationLot> lots, {OwnerType? owner}) {
+  final list = [for (final l in lots) if (owner == null || l.ownerType == owner) l];
+  if (list.isEmpty) return const [];
+  DateTime m(IncubationLot l) => DateTime(l.schedule.hatchDate.year, l.schedule.hatchDate.month);
+  final months = list.map(m).toList()..sort();
+  final rows = <MonthlyHatch>[];
+  for (var d = months.first; !d.isAfter(months.last); d = DateTime(d.year, d.month + 1)) {
+    rows.add(MonthlyHatch(d));
+  }
+  for (final l in list) {
+    final key = m(l);
+    rows.firstWhere((r) => r.month == key).add(l);
+  }
+  return rows;
+}
+
+/// Total d'un ensemble de lignes.
+MonthlyHatch totalOf(Iterable<MonthlyHatch> rows) {
+  final t = MonthlyHatch(DateTime(0));
+  for (final r in rows) {
+    t
+      ..lots += r.lots
+      ..eggsSet += r.eggsSet
+      ..eggsWithResult += r.eggsWithResult
+      ..hatched += r.hatched
+      ..deaths += r.deaths
+      ..alive += r.alive;
+  }
+  return t;
+}

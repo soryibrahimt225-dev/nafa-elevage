@@ -10,9 +10,9 @@ Nafa Élevage est une application web et mobile (Flutter) de gestion d'élevage,
 | 2 | Calendrier de couvaison : calcul de la descente et de l'éclosion | ✅ livré |
 | 3 | Lots de sujets (effectif, mortalité, sorties, âge) et lots d'œufs (résultat d'éclosion), enregistrés sur l'appareil ; import de l'onglet « Lots » du classeur | ✅ livré |
 | 4 | Tableau de bord alimenté par les lots et la comptabilité : échéances à 10 jours, alertes | ✅ livré |
-| 5 | Santé et vaccination (sauf couveuse) | à venir |
+| 5 | Santé et vaccination (sauf couveuse) : soins prévus, réalisés, en retard ; aucune prescription proposée | ✅ livré |
 | 6 | Ventes (remise explicite, encaissements), dépenses (générales ou par production/lot), comptabilité générale (par production, par lot, par mois) | ✅ livré |
-| 7 | Production mensuelle de la couveuse | à venir |
+| 7 | Production mensuelle de la couveuse, comparatif producteur / client | ✅ livré |
 | 8 | Agenda du téléphone et notifications locales | à venir |
 | 9 | Paramètres par espèce et par race, prix | à venir |
 | 10 | Rapports, sauvegarde et synchronisation | à venir |

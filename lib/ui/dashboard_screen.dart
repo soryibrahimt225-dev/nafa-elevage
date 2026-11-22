@@ -1,9 +1,11 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../data/finance_store.dart';
+import '../data/health_store.dart';
 import '../data/lot_store.dart';
 import '../domain/finance.dart';
 import '../domain/format.dart';
+import '../domain/health.dart';
 import '../domain/lots.dart';
 import '../domain/production.dart';
 import 'incubation_lots_screen.dart';
@@ -17,12 +19,14 @@ class DashboardScreen extends StatelessWidget {
     super.key,
     required this.store,
     required this.finance,
+    required this.health,
     required this.production,
     required this.options,
     required this.today,
   });
   final LotStore store;
   final FinanceStore finance;
+  final HealthStore health;
   final ProductionType production;
   final Set<OptionalFeature> options;
   final DateTime today;
@@ -35,7 +39,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([store, finance]),
+      listenable: Listenable.merge([store, finance, health]),
       builder: (context, _) {
         final total = finance.accounting().global;
         final month = finance.accounting(Period.month(today)).global;
@@ -58,6 +62,24 @@ class DashboardScreen extends StatelessWidget {
             ('Lots en cours', formatInt(active.length), '${formatInt(lots.length)} au total'),
             ('Mortalité', initial == 0 ? '—' : formatPercent(dead / initial), '${formatInt(dead)} sujets morts'),
           ]);
+          final care = health.forLots({for (final l in lots) l.code}, today).where((r) {
+            final st = r.statusAt(today);
+            return st == HealthStatus.enRetard || st == HealthStatus.aujourdhui;
+          }).toList();
+          children.add(SectionCard(
+            title: 'Soins du jour et en retard',
+            children: [
+              if (care.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('Aucun soin à faire aujourd’hui.', style: TextStyle(color: NafaColors.textMuted)),
+                ),
+              for (final r in care.take(6))
+                InfoRow('${r.lotCode} · ${r.title}',
+                    r.statusAt(today) == HealthStatus.enRetard ? 'en retard (${r.lateDays(today)} j)' : 'aujourd’hui',
+                    valueColor: r.statusAt(today) == HealthStatus.enRetard ? NafaColors.urgent : NafaColors.watch),
+            ],
+          ));
           children.add(SectionCard(
             title: 'Lots en cours',
             children: [
