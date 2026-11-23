@@ -843,4 +843,26 @@ void main() {
     expect(find.textContaining('https://'), findsWidgets);
     expect(find.byKey(const ValueKey('creer-compte')), findsOneWidget);
   });
+
+  testWidgets('Recommencer à zéro : retour à la première question', (t) async {
+    await freshSettings({
+      'nafa.production': 'chair',
+      'nafa.lots.v1': '{"animal":[{"id":"1","code":"CHA-26-001","production":"chair","breed":"Cobb 500",'
+          '"startDate":"2026-10-21","initialCount":500,"movements":[]}],"incubation":[]}',
+    });
+    t.view.physicalSize = const Size(360, 740);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final data = await t.runAsync(AppData.load);
+    await t.pumpWidget(NafaRoot(initial: data!, backend: UnsupportedReminderBackend(), today: today));
+    await t.pumpAndSettle();
+    await openMenu(t, 'parametres');
+    await tapKey(t, 'recommencer');
+    await t.pumpAndSettle();
+    expect(find.text('Recommencer à zéro ?'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('confirmer-recommencer')));
+    await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await t.pumpAndSettle();
+    expect(find.text('Quelle production voulez-vous gérer ?'), findsOneWidget);
+  });
 }

@@ -140,6 +140,14 @@ class BackupService {
     }
   }
 
+  /// Efface toutes les données de l'application sur cet appareil
+  /// (recommencer à zéro). Le compte de synchronisation est aussi oublié.
+  Future<void> resetAll() async {
+    for (final k in _prefs.getKeys().where((k) => k.startsWith(_prefix)).toList()) {
+      await _prefs.remove(k);
+    }
+  }
+
   /// Revient aux données d'avant la dernière restauration.
   Future<void> undoRestore() async {
     final raw = _prefs.getString(_previous);

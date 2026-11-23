@@ -106,4 +106,15 @@ void main() {
       expect(service.canUndoRestore, isFalse);
     });
   });
+
+  test('Recommencer à zéro : tout est effacé', () async {
+    await farm();
+    final prefs = await SharedPreferences.getInstance();
+    await BackupService(prefs).resetAll();
+    final d = await AppData.load();
+    expect(d.settings.isConfigured, isFalse);
+    expect(d.lots.animalLots(ProductionType.ameliorees), isEmpty);
+    expect(d.finance.sales, isEmpty);
+    expect(prefs.getKeys().where((k) => k.startsWith('nafa.')), isEmpty);
+  });
 }

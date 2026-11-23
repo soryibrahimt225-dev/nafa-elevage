@@ -82,6 +82,34 @@ class _BackupSectionState extends State<BackupSection> {
     }
   }
 
+  /// Efface toutes les données de l'appareil et revient à l'écran de départ.
+  Future<void> _reset() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: const Text('Recommencer à zéro ?'),
+        content: const Text(
+          'Toutes les données de ce téléphone seront effacées : lots, ventes, dépenses, aliments, soins, '
+          'paramètres et ferme. L’application reviendra à la première question.\n\n'
+          'Créez d’abord une sauvegarde si vous voulez pouvoir les retrouver.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Annuler')),
+          FilledButton(
+            key: const ValueKey('confirmer-recommencer'),
+            style: FilledButton.styleFrom(backgroundColor: NafaColors.urgent),
+            onPressed: () => Navigator.pop(d, true),
+            child: const Text('Tout effacer'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final reload = AppScope.reloadOf(context);
+    await widget.service.resetAll();
+    await reload?.call();
+  }
+
   Future<void> _undo() async {
     await widget.service.undoRestore();
     if (!mounted) return;
@@ -115,6 +143,13 @@ class _BackupSectionState extends State<BackupSection> {
           onPressed: _busy ? null : _restore,
           icon: const Icon(Icons.restore),
           label: const Text('Restaurer depuis un fichier'),
+        ),
+        TextButton.icon(
+          key: const ValueKey('recommencer'),
+          style: TextButton.styleFrom(foregroundColor: NafaColors.urgent),
+          onPressed: _busy ? null : _reset,
+          icon: const Icon(Icons.restart_alt),
+          label: const Text('Recommencer à zéro'),
         ),
         if (widget.service.canUndoRestore)
           TextButton(

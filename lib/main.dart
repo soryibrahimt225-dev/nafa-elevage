@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'data/app_data.dart';
 import 'data/device_reminder_backend.dart';
+import 'data/reminder_service.dart';
 import 'ui/app_scope.dart';
 import 'ui/config_scope.dart';
 import 'ui/reminder_scope.dart';
@@ -18,9 +19,12 @@ Future<void> main() async {
 /// Racine de l'application : permet de tout recharger après une
 /// restauration de sauvegarde.
 class NafaRoot extends StatefulWidget {
-  const NafaRoot({super.key, required this.initial, required this.backend});
+  const NafaRoot({super.key, required this.initial, required this.backend, this.today});
   final AppData initial;
-  final DeviceReminderBackend backend;
+  final ReminderBackend backend;
+
+  /// Date imposée (tests).
+  final DateTime? today;
 
   @override
   State<NafaRoot> createState() => _NafaRootState();
@@ -39,7 +43,8 @@ class _NafaRootState extends State<NafaRoot> {
   }
 
   @override
-  Widget build(BuildContext context) => NafaApp(key: ValueKey(_generation), data: _data, onReload: _reload);
+  Widget build(BuildContext context) =>
+      NafaApp(key: ValueKey(_generation), data: _data, onReload: _reload, today: widget.today);
 }
 
 class NafaApp extends StatelessWidget {
