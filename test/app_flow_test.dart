@@ -751,4 +751,14 @@ void main() {
     expect(find.text('Indice de consommation'), findsOneWidget);
     expect(find.text('50 g par sujet et par jour'), findsOneWidget); // 1 600 g en 32 jours
   });
+
+  testWidgets('Paramètres : section Sauvegarde', (t) async {
+    final s = await freshSettings({'nafa.production': 'chair'});
+    await pumpPhone(t, s);
+    await openMenu(t, 'parametres');
+    await t.scrollUntilVisible(find.byKey(const ValueKey('creer-sauvegarde')), 200, scrollable: find.byType(Scrollable).first);
+    expect(find.text('jamais'), findsOneWidget);
+    expect(find.byKey(const ValueKey('restaurer')), findsOneWidget);
+    expect(find.byKey(const ValueKey('annuler-restauration')), findsNothing);
+  });
 }

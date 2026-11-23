@@ -22,7 +22,8 @@ Nafa Élevage est une application web et mobile (Flutter) de gestion d'élevage,
 | 11 | Assistant de démarrage complet : production, ferme (nom, lieu, FCFA), race ou espèce, premier lot et objectif, aliment et stock de départ, prix de vente, utilisateurs et rôles | ✅ livré |
 | 11 bis | Bouton principal « Saisir » sur le tableau de bord : mortalité, œufs, aliment, soin réalisé, vente, dépense ; couveuse : œufs en couveuse, éclosion, mortalité des poussins gardés | ✅ livré |
 | 11 ter | Pesées (chair, races améliorées) : poids moyen, gain moyen quotidien, indice de consommation ; tableau de bord, fiche du lot, rapports, bouton « Saisir » | ✅ livré |
-| 12 | Sauvegarde, travail hors connexion et synchronisation, utilisateurs et rôles | à venir |
+| 12 | Sauvegarde complète dans un fichier (partage ou téléchargement), restauration vérifiée avec annulation possible | ✅ livré |
+| 13 | Synchronisation entre téléphones (serveur à choisir) et droits d'accès par rôle | à venir |
 
 ## Règles appliquées
 

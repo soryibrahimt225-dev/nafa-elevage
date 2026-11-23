@@ -11,6 +11,8 @@ import '../domain/format.dart';
 import '../domain/incubation.dart';
 import '../domain/production.dart';
 import '../domain/reminders.dart';
+import 'app_scope.dart';
+import 'backup_section.dart';
 import 'config_scope.dart';
 import 'reminder_scope.dart';
 import 'theme.dart';
@@ -75,6 +77,10 @@ class SettingsScreen extends StatelessWidget {
         ],
         const SizedBox(height: 12),
         _PricesSection(config: config, categories: saleCategoriesFor(p, settings.options)),
+        if (AppScope.maybeOf(context) case final d?) ...[
+          const SizedBox(height: 12),
+          BackupSection(service: d.backup, farmName: settings.farm.displayName),
+        ],
       ],
     );
   }

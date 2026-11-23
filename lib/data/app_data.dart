@@ -1,3 +1,4 @@
+import 'backup_service.dart';
 import 'config_store.dart';
 import 'egg_store.dart';
 import 'feed_store.dart';
@@ -20,6 +21,7 @@ class AppData {
     required this.eggs,
     required this.feed,
     required this.weights,
+    required this.backup,
   });
 
   final FarmSettings settings;
@@ -31,6 +33,7 @@ class AppData {
   final EggStore eggs;
   final FeedStore feed;
   final WeighingStore weights;
+  final BackupService backup;
 
   /// [backend] : accès à l'agenda et aux notifications du téléphone
   /// (remplacé sur le web et dans les tests).
@@ -44,5 +47,6 @@ class AppData {
         eggs: await EggStore.load(),
         feed: await FeedStore.load(),
         weights: await WeighingStore.load(),
+        backup: await BackupService.load(),
       );
 }

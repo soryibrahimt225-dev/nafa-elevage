@@ -11,12 +11,43 @@ import 'ui/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(NafaApp(data: await AppData.load(backend: DeviceReminderBackend())));
+  final backend = DeviceReminderBackend();
+  runApp(NafaRoot(initial: await AppData.load(backend: backend), backend: backend));
+}
+
+/// Racine de l'application : permet de tout recharger après une
+/// restauration de sauvegarde.
+class NafaRoot extends StatefulWidget {
+  const NafaRoot({super.key, required this.initial, required this.backend});
+  final AppData initial;
+  final DeviceReminderBackend backend;
+
+  @override
+  State<NafaRoot> createState() => _NafaRootState();
+}
+
+class _NafaRootState extends State<NafaRoot> {
+  late AppData _data = widget.initial;
+  var _generation = 0;
+
+  Future<void> _reload() async {
+    final data = await AppData.load(backend: widget.backend);
+    setState(() {
+      _data = data;
+      _generation++;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => NafaApp(key: ValueKey(_generation), data: _data, onReload: _reload);
 }
 
 class NafaApp extends StatelessWidget {
-  const NafaApp({super.key, required this.data, this.today});
+  const NafaApp({super.key, required this.data, this.today, this.onReload});
   final AppData data;
+
+  /// Recharge toutes les données (après une restauration).
+  final Future<void> Function()? onReload;
 
   /// Date du jour imposée (tests). Par défaut : date du téléphone.
   final DateTime? today;
@@ -25,6 +56,7 @@ class NafaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppScope(
       data: data,
+      reload: onReload,
       child: ConfigScope(
       config: data.config,
       child: ReminderScope(
