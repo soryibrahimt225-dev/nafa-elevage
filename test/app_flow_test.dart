@@ -261,4 +261,55 @@ void main() {
     await openMenu(t, 'tableauDeBord');
     expect(find.textContaining('AME-26-001 · Vaccin A'), findsOneWidget);
   });
+
+  testWidgets('Paramètres : la durée modifiée change les dates du nouveau lot', (t) async {
+    final s = await freshSettings({'nafa.production': 'couveuse'});
+    await pumpPhone(t, s);
+    await openMenu(t, 'parametres');
+    await tapKey(t, 'espece-goliath');
+    await t.pumpAndSettle();
+    await t.enterText(find.descendant(of: find.byKey(const ValueKey('jour-descente')), matching: find.byType(EditableText)), '18');
+    await t.tap(find.byKey(const ValueKey('valider-espece')));
+    await t.pumpAndSettle();
+    expect(find.text('21 jours · descente au jour 18'), findsNWidgets(2)); // Goliath et poulet local
+
+    await openMenu(t, 'lotsOeufs');
+    await t.tap(find.byKey(const ValueKey('nouveau-lot-oeufs')));
+    await t.pumpAndSettle();
+    await t.scrollUntilVisible(find.text('10 décembre 2026 · jour 18'), 120, scrollable: find.byType(Scrollable).first);
+    expect(find.text('10 décembre 2026 · jour 18'), findsOneWidget);
+  });
+
+  testWidgets('Paramètres : prix de référence proposé à la vente', (t) async {
+    final s = await freshSettings({'nafa.production': 'couveuse'});
+    await pumpPhone(t, s);
+    await openMenu(t, 'parametres');
+    await tapKey(t, 'prix-poussins');
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('valeur-prix')), '750');
+    await t.tap(find.byKey(const ValueKey('valider-prix')));
+    await t.pumpAndSettle();
+    expect(find.text('750\u00A0FCFA par poussin'), findsOneWidget);
+
+    await openMenu(t, 'ventes');
+    await t.tap(find.byKey(const ValueKey('nouvelle-vente')));
+    await t.pumpAndSettle();
+    await enterKey(t, 'quantite', '10');
+    expect(find.text('7\u00A0500\u00A0FCFA'), findsOneWidget);
+  });
+
+  testWidgets('Races améliorées : repères du cycle sur la fiche du lot', (t) async {
+    final s = await freshSettings({
+      'nafa.production': 'ameliorees',
+      'nafa.lots.v1': '{"animal":[{"id":"1","code":"AME-26-001","production":"ameliorees","breed":"Goliath",'
+          '"startDate":"2026-10-01","initialCount":100,"objective":"ponte","movements":[]}],"incubation":[]}',
+    });
+    await pumpPhone(t, s);
+    await openMenu(t, 'lots');
+    await t.tap(find.byKey(const ValueKey('lot-AME-26-001')));
+    await t.pumpAndSettle();
+    await t.scrollUntilVisible(find.text('Cycle Goliath'), 120, scrollable: find.byType(Scrollable).first);
+    expect(find.text('1 février 2027'), findsOneWidget); // sélection à 4 mois
+    expect(find.text('1 octobre 2028'), findsOneWidget); // contrôle de réforme à 24 mois
+  });
 }

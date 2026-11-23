@@ -6,6 +6,7 @@ import '../domain/finance.dart';
 import '../domain/format.dart';
 import '../domain/lots.dart';
 import '../domain/production.dart';
+import 'config_scope.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -163,7 +164,8 @@ class _SaleFormState extends State<SaleForm> {
   }
 
   void _applyLastPrice() {
-    final p = widget.ctx.finance.lastPrice(_category);
+    // Prix de référence des Paramètres, sinon dernier prix pratiqué.
+    final p = ConfigScope.read(context).priceFor(_category) ?? widget.ctx.finance.lastPrice(_category);
     _price.text = p?.toString() ?? '';
   }
 

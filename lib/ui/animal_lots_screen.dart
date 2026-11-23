@@ -4,16 +4,10 @@ import '../data/lot_store.dart';
 import '../domain/format.dart';
 import '../domain/lots.dart';
 import '../domain/production.dart';
+import 'config_scope.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
-/// Races proposées par production (le producteur peut en saisir une autre).
-List<String> breedSuggestions(ProductionType p) => switch (p) {
-      ProductionType.chair => const ['Cobb 500', 'Ross 308', 'Poulet de chair local'],
-      ProductionType.ameliorees => const ['Goliath', 'Kuroiler', 'SASSO', 'Bleu de Hollande', 'Wassachè'],
-      ProductionType.pondeuses => const ['ISA Brown', 'Bovans Brown', 'Hisex', 'Dekalb', 'Shaver', 'Babcock'],
-      ProductionType.couveuse => const [],
-    };
 
 /// Liste des lots de sujets de la production active.
 class AnimalLotsScreen extends StatelessWidget {
@@ -191,7 +185,7 @@ class _AnimalLotFormState extends State<AnimalLotForm> {
             const SizedBox(height: 8),
             // Choix rapide : un appui suffit, sans rien écrire.
             Wrap(spacing: 8, runSpacing: 4, children: [
-              for (final b in breedSuggestions(widget.production))
+              for (final b in ConfigScope.of(context).breedsFor(widget.production))
                 ChoiceChip(
                   label: Text(b),
                   selected: _breed.text == b,
@@ -254,6 +248,10 @@ class AnimalLotDetailScreen extends StatelessWidget {
               if (lot.objective != null) InfoRow('Objectif', lot.objective!.label),
               if (lot.notes.isNotEmpty) InfoRow('Observations', lot.notes),
             ]),
+            if (lot.production == ProductionType.ameliorees && lot.objective != LotObjective.engraissement) ...[
+              const SizedBox(height: 12),
+              _CycleCard(lot: lot, today: today),
+            ],
             const SizedBox(height: 12),
             if (lot.status == LotStatus.enCours)
               FilledButton.icon(
@@ -362,3 +360,29 @@ Future<bool> _confirm(BuildContext context, String title, String message) async 
       ),
     ) ??
     false;
+
+/// Repères du cycle d'une race améliorée (Paramètres > cycle par race).
+/// Ce sont des contrôles : la réforme reste une décision du producteur.
+class _CycleCard extends StatelessWidget {
+  const _CycleCard({required this.lot, required this.today});
+  final AnimalLot lot;
+  final DateTime today;
+
+  @override
+  Widget build(BuildContext context) {
+    final steps = ConfigScope.of(context).cycleFor(lot.breed).milestones(lot.startDate);
+    final t = DateTime(today.year, today.month, today.day);
+    final next = steps.where((s) => !s.$2.isBefore(t)).firstOrNull;
+    return SectionCard(title: 'Cycle ${lot.breed}', children: [
+      for (final s in steps)
+        InfoRow(
+          s.$1,
+          s.$2.isBefore(t) ? '${formatDate(s.$2)} · passé' : formatDate(s.$2),
+          valueColor: identical(s, next) ? NafaColors.green : (s.$2.isBefore(t) ? NafaColors.textMuted : null),
+        ),
+      const SizedBox(height: 4),
+      const Text('Repères modifiables dans Paramètres. La réforme n’est jamais automatique.',
+          style: TextStyle(color: NafaColors.textMuted, fontSize: 12)),
+    ]);
+  }
+}

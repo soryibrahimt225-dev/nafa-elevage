@@ -5,6 +5,7 @@ import '../domain/format.dart';
 import '../domain/incubation.dart';
 import '../domain/lots.dart';
 import 'incubation_lots_screen.dart';
+import 'config_scope.dart';
 import 'theme.dart';
 
 /// Calcul des dates de couvaison (descente et éclosion) pour un lot.
@@ -19,7 +20,7 @@ class IncubationCalculator extends StatefulWidget {
 }
 
 class _IncubationCalculatorState extends State<IncubationCalculator> {
-  SpeciesProfile _profile = defaultSpeciesProfiles.first;
+  late SpeciesProfile _profile = ConfigScope.of(context).species.first;
   late DateTime _entry = DateTime(widget.today.year, widget.today.month, widget.today.day);
 
   Future<void> _pickDate() async {
@@ -85,7 +86,7 @@ class _IncubationCalculatorState extends State<IncubationCalculator> {
           isExpanded: true,
           decoration: const InputDecoration(labelText: 'Espèce ou race', border: OutlineInputBorder()),
           items: [
-            for (final p in defaultSpeciesProfiles)
+            for (final p in ConfigScope.of(context).species)
               DropdownMenuItem(
                   value: p,
                   child: Text('${p.label} · ${p.incubationDays} jours', overflow: TextOverflow.ellipsis)),

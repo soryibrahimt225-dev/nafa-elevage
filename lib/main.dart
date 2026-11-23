@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'data/app_data.dart';
+import 'ui/config_scope.dart';
 import 'ui/home_shell.dart';
 import 'ui/onboarding_screen.dart';
 import 'ui/theme.dart';
@@ -19,7 +20,9 @@ class NafaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return ConfigScope(
+      config: data.config,
+      child: MaterialApp(
       title: 'Nafa Élevage',
       debugShowCheckedModeBanner: false,
       theme: buildNafaTheme(),
@@ -31,6 +34,7 @@ class NafaApp extends StatelessWidget {
         builder: (context, _) => data.settings.isConfigured
             ? HomeShell(data: data, today: today)
             : OnboardingScreen(settings: data.settings),
+      ),
       ),
     );
   }

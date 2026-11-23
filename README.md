@@ -14,7 +14,7 @@ Nafa Élevage est une application web et mobile (Flutter) de gestion d'élevage,
 | 6 | Ventes (remise explicite, encaissements), dépenses (générales ou par production/lot), comptabilité générale (par production, par lot, par mois) | ✅ livré |
 | 7 | Production mensuelle de la couveuse, comparatif producteur / client | ✅ livré |
 | 8 | Agenda du téléphone et notifications locales | à venir |
-| 9 | Paramètres par espèce et par race, prix | à venir |
+| 9 | Paramètres : espèces de couvaison (durée, jour de descente), races, prix de référence, cycle des races améliorées | ✅ livré |
 | 10 | Rapports, sauvegarde et synchronisation | à venir |
 
 ## Règles appliquées
@@ -23,7 +23,7 @@ Nafa Élevage est une application web et mobile (Flutter) de gestion d'élevage,
 - On écrit « sujet » ou « sujets », jamais « oiseau ».
 - Les montants sont toujours écrits en entier : `588 256 FCFA`.
 - Couvaison : le jour de mise en couveuse est le **jour 0**, et l'éclosion tombe à la date d'entrée + la durée, comme dans le classeur `Gestion-couvoir-2026.xlsx`.
-- Jours de descente proposés par défaut, modifiables : Goliath 16, poule 18, pintade, canard et dindon 25, canard de Barbarie 31 (35 jours d'incubation).
+- Jours de descente proposés par défaut, modifiables dans Paramètres : Goliath 16, poule 18, pintade, canard et dindon 25, canard de Barbarie 31 (35 jours d'incubation).
 
 Les incohérences relevées et les décisions attendues sont listées dans [`docs/audit-phase1-3.md`](docs/audit-phase1-3.md).
 
