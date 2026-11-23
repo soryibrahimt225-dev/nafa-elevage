@@ -13,7 +13,7 @@ Nafa Élevage est une application web et mobile (Flutter) de gestion d'élevage,
 | 5 | Santé et vaccination (sauf couveuse) : soins prévus, réalisés, en retard ; aucune prescription proposée | ✅ livré |
 | 6 | Ventes (remise explicite, encaissements), dépenses (générales ou par production/lot), comptabilité générale (par production, par lot, par mois) | ✅ livré |
 | 7 | Production mensuelle de la couveuse, comparatif producteur / client | ✅ livré |
-| 8 | Agenda du téléphone et notifications locales | à venir |
+| 8 | Agenda du téléphone (Android et iPhone, sans Google Agenda) et notifications locales en repli ; réglages heure / veille ; suppression à l'éclosion | ✅ livré (à valider sur téléphone) |
 | 9 | Paramètres : espèces de couvaison (durée, jour de descente), races, prix de référence, cycle des races améliorées | ✅ livré |
 | 10 | Rapports, sauvegarde et synchronisation | à venir |
 
@@ -26,6 +26,14 @@ Nafa Élevage est une application web et mobile (Flutter) de gestion d'élevage,
 - Jours de descente proposés par défaut, modifiables dans Paramètres : Goliath 16, poule 18, pintade, canard et dindon 25, canard de Barbarie 31 (35 jours d'incubation).
 
 Les incohérences relevées et les décisions attendues sont listées dans [`docs/audit-phase1-3.md`](docs/audit-phase1-3.md).
+
+## Rappels sur téléphone
+
+- Après la création d'un lot d'œufs, Nafa propose d'ajouter deux rappels (descente et éclosion) à l'**agenda natif** du téléphone (`device_calendar_plus` : Calendar Provider sur Android, EventKit sur iPhone).
+- Si l'accès à l'agenda est refusé ou indisponible, Nafa programme des **notifications locales** (`flutter_local_notifications`), à une heure approximative : l'application ne demande pas l'autorisation « alarmes exactes ».
+- La saisie de l'éclosion supprime les rappels restants. Dans Paramètres, on règle l'heure, le jour même ou la veille, et on peut réappliquer les réglages aux lots en cours.
+- Sur le web, aucun rappel n'est créé.
+- Configuration native : permissions dans `AndroidManifest.xml` (agenda, notifications, redémarrage), *desugaring* dans `android/app/build.gradle.kts`, textes d'autorisation dans `ios/Runner/Info.plist`, délégué de notifications dans `AppDelegate.swift`.
 
 ## Développement
 

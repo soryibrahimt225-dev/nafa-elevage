@@ -1,14 +1,16 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'data/app_data.dart';
+import 'data/device_reminder_backend.dart';
 import 'ui/config_scope.dart';
+import 'ui/reminder_scope.dart';
 import 'ui/home_shell.dart';
 import 'ui/onboarding_screen.dart';
 import 'ui/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(NafaApp(data: await AppData.load()));
+  runApp(NafaApp(data: await AppData.load(backend: DeviceReminderBackend())));
 }
 
 class NafaApp extends StatelessWidget {
@@ -22,6 +24,8 @@ class NafaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ConfigScope(
       config: data.config,
+      child: ReminderScope(
+      reminders: data.reminders,
       child: MaterialApp(
       title: 'Nafa Élevage',
       debugShowCheckedModeBanner: false,
@@ -34,6 +38,7 @@ class NafaApp extends StatelessWidget {
         builder: (context, _) => data.settings.isConfigured
             ? HomeShell(data: data, today: today)
             : OnboardingScreen(settings: data.settings),
+      ),
       ),
       ),
     );

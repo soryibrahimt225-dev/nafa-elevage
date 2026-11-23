@@ -1,6 +1,7 @@
 import 'finance.dart';
 import 'incubation.dart';
 import 'production.dart';
+import 'reminders.dart';
 
 /// Cycle d'une race améliorée. Valeurs par défaut du cahier des charges,
 /// modifiables par race. Ce sont des repères de contrôle : la réforme n'est
@@ -82,6 +83,7 @@ class FarmConfig {
     Map<ProductionType, List<String>>? breeds,
     Map<SaleCategory, int>? prices,
     Map<String, ImprovedCycle>? cycles,
+    this.reminders = const ReminderPrefs(),
   })  : species = species ?? [...defaultSpeciesProfiles],
         breeds = breeds ?? {for (final e in defaultBreeds.entries) e.key: [...e.value]},
         prices = prices ?? {},
@@ -95,6 +97,9 @@ class FarmConfig {
 
   /// Cycle par race améliorée ; une race absente utilise le cycle par défaut.
   final Map<String, ImprovedCycle> cycles;
+
+  /// Réglages des rappels de couvaison.
+  ReminderPrefs reminders;
 
   ImprovedCycle cycleFor(String breed) => cycles[breed] ?? const ImprovedCycle();
 
@@ -132,6 +137,7 @@ class FarmConfig {
         'breeds': {for (final e in breeds.entries) e.key.name: e.value},
         'prices': {for (final e in prices.entries) e.key.name: e.value},
         'cycles': {for (final e in cycles.entries) e.key: e.value.toJson()},
+        'reminders': reminders.toJson(),
       };
 
   factory FarmConfig.fromJson(Map<String, Object?> j) => FarmConfig(
@@ -148,5 +154,8 @@ class FarmConfig {
           for (final e in ((j['cycles'] as Map?) ?? const {}).entries)
             e.key as String: ImprovedCycle.fromJson((e.value as Map).cast()),
         },
+        reminders: j['reminders'] == null
+            ? const ReminderPrefs()
+            : ReminderPrefs.fromJson((j['reminders'] as Map).cast()),
       );
 }

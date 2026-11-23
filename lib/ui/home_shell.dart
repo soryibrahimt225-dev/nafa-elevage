@@ -161,7 +161,7 @@ class _ModulePage extends StatelessWidget {
       case AppModule.calendrierCouvaison:
         return IncubationCalculator(today: today, store: lots);
       case AppModule.parametres:
-        return SettingsScreen(settings: settings);
+        return SettingsScreen(settings: settings, lots: lots);
       default:
         return _Placeholder(module: module);
     }

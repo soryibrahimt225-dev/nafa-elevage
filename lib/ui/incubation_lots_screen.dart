@@ -3,10 +3,12 @@ import 'package:material_ui/material_ui.dart';
 
 import '../data/excel_import.dart';
 import '../data/lot_store.dart';
+import '../data/reminder_service.dart';
 import '../domain/format.dart';
 import '../domain/incubation.dart';
 import '../domain/lots.dart';
 import 'config_scope.dart';
+import 'reminder_scope.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -222,10 +224,12 @@ class _IncubationLotFormState extends State<IncubationLotForm> {
         observations: _obs.text.trim(),
       );
       await widget.store.addIncubationLot(lot);
+      if (!mounted) return;
+      final message = await setUpReminders(context, lot);
       if (mounted) {
         Navigator.of(context).pop();
         showInfo(context, 'Lot ${lot.code} créé. Descente le ${formatDate(lot.schedule.descenteDate)}, '
-            'éclosion le ${formatDate(lot.schedule.hatchDate)}.');
+            'éclosion le ${formatDate(lot.schedule.hatchDate)}.$message');
       }
     } catch (e) {
       if (mounted) showError(context, e);
@@ -338,6 +342,7 @@ class IncubationLotDetailScreen extends StatelessWidget {
                 InfoRow('Éclosion prévue', '${formatDate(s.hatchDate)} · jour ${s.incubationDays}'),
                 if (!lot.hasResult && day >= 0 && day <= s.incubationDays)
                   InfoRow('Aujourd’hui', 'jour $day sur ${s.incubationDays}'),
+                if (!lot.hasResult) _ReminderRow(lot: lot),
               ]),
               const SizedBox(height: 12),
               SectionCard(title: 'Résultat de l’éclosion', children: [
@@ -404,6 +409,8 @@ class IncubationLotDetailScreen extends StatelessWidget {
                   chickDeaths: deaths.text.isEmpty ? null : int.parse(deaths.text),
                 );
                 await store.changed();
+                // Éclosion saisie : les rappels restants du lot sont supprimés.
+                if (dialogContext.mounted) await ReminderScope.read(dialogContext).cancelForLot(lot.code);
                 if (dialogContext.mounted) Navigator.pop(dialogContext);
               } catch (e) {
                 if (dialogContext.mounted) showError(dialogContext, e);
@@ -414,5 +421,72 @@ class IncubationLotDetailScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Après la création d'un lot : propose l'agenda du téléphone, sinon une
+/// notification locale. Renvoie une phrase à ajouter au message de
+/// confirmation.
+Future<String> setUpReminders(BuildContext context, IncubationLot lot) async {
+  final service = ReminderScope.read(context);
+  final prefs = ConfigScope.read(context).reminders;
+  if (!prefs.enabled) return '';
+  if (!service.supported) return ' Rappels disponibles dans l’application Android ou iPhone.';
+  bool? useCalendar = prefs.useCalendar;
+  if (prefs.useCalendar) {
+    useCalendar = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (d) => AlertDialog(
+        title: const Text('Rappels dans l’agenda ?'),
+        content: Text(
+          'Nafa peut ajouter deux rappels à l’agenda de votre téléphone :\n'
+          '• descente des œufs le ${formatDate(lot.schedule.descenteDate)}\n'
+          '• éclosion prévue le ${formatDate(lot.schedule.hatchDate)}\n\n'
+          'Le téléphone va vous demander l’autorisation. Si vous refusez, Nafa vous préviendra par une notification.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Notification seulement')),
+          FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Ajouter à l’agenda')),
+        ],
+      ),
+    );
+  }
+  try {
+    final o = await service.scheduleForLot(lot, prefs, useCalendar: useCalendar ?? false);
+    return switch (o.channel) {
+      ReminderChannel.agenda => ' ${o.count} rappel(s) ajouté(s) à l’agenda.',
+      ReminderChannel.notification =>
+        o.calendarRefused ? ' Agenda refusé : ${o.count} notification(s) prévue(s).' : ' ${o.count} notification(s) prévue(s).',
+      ReminderChannel.aucun => '',
+    };
+  } catch (_) {
+    return ' Les rappels n’ont pas pu être créés.';
+  }
+}
+
+class _ReminderRow extends StatelessWidget {
+  const _ReminderRow({required this.lot});
+  final IncubationLot lot;
+
+  @override
+  Widget build(BuildContext context) {
+    final service = ReminderScope.of(context);
+    final channel = service.channelFor(lot.code);
+    return Row(children: [
+      Expanded(child: InfoRow('Rappels', channel.label)),
+      if (service.supported)
+        TextButton(
+          onPressed: () async {
+            if (channel == ReminderChannel.aucun) {
+              final msg = await setUpReminders(context, lot);
+              if (context.mounted && msg.isNotEmpty) showInfo(context, msg.trim());
+            } else {
+              await service.cancelForLot(lot.code);
+            }
+          },
+          child: Text(channel == ReminderChannel.aucun ? 'Créer' : 'Supprimer'),
+        ),
+    ]);
   }
 }

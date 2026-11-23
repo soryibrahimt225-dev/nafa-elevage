@@ -2,19 +2,23 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../data/config_store.dart';
+import '../data/lot_store.dart';
 import '../data/settings_store.dart';
 import '../domain/config.dart';
 import '../domain/finance.dart';
 import '../domain/format.dart';
 import '../domain/incubation.dart';
 import '../domain/production.dart';
+import '../domain/reminders.dart';
 import 'config_scope.dart';
+import 'reminder_scope.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
 class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key, required this.settings});
+  const SettingsScreen({super.key, required this.settings, required this.lots});
   final FarmSettings settings;
+  final LotStore lots;
 
   bool get _incubation =>
       settings.production == ProductionType.couveuse ||
@@ -54,6 +58,8 @@ class SettingsScreen extends StatelessWidget {
         ]),
         if (_incubation) ...[
           const SizedBox(height: 12),
+          _RemindersSection(config: config, lots: lots),
+          const SizedBox(height: 12),
           _SpeciesSection(config: config),
         ],
         if (p != ProductionType.couveuse) ...[
@@ -68,6 +74,76 @@ class SettingsScreen extends StatelessWidget {
         _PricesSection(config: config, categories: saleCategoriesFor(p, settings.options)),
       ],
     );
+  }
+}
+
+class _RemindersSection extends StatelessWidget {
+  const _RemindersSection({required this.config, required this.lots});
+  final ConfigStore config;
+  final LotStore lots;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = config.reminders;
+    final service = ReminderScope.of(context);
+    Future<void> set(ReminderPrefs p) => config.setReminders(p);
+    return SectionCard(title: 'Rappels de couvaison', children: [
+      if (!service.supported)
+        const Padding(
+          padding: EdgeInsets.only(bottom: 4),
+          child: Text('Les rappels fonctionnent dans l’application Android ou iPhone, pas dans le navigateur.',
+              style: TextStyle(color: NafaColors.watch, fontSize: 13)),
+        ),
+      SwitchListTile(
+        key: const ValueKey('rappels-actifs'),
+        contentPadding: EdgeInsets.zero,
+        value: r.enabled,
+        onChanged: (v) => set(r.copyWith(enabled: v)),
+        title: const Text('Rappels de descente et d’éclosion'),
+      ),
+      if (r.enabled) ...[
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: r.useCalendar,
+          onChanged: (v) => set(r.copyWith(useCalendar: v)),
+          title: const Text('Synchroniser avec l’agenda du téléphone'),
+          subtitle: const Text('Sinon, notification de l’application.'),
+        ),
+        ListTile(
+          key: const ValueKey('heure-rappel'),
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Heure du rappel'),
+          trailing: Text('${r.hour} h 00', style: const TextStyle(fontWeight: FontWeight.w700)),
+          onTap: () async {
+            final t = await showTimePicker(
+              context: context,
+              initialTime: TimeOfDay(hour: r.hour, minute: 0),
+              helpText: 'Heure du rappel',
+            );
+            if (t != null) await set(r.copyWith(hour: t.hour));
+          },
+        ),
+        SegmentedButton<bool>(
+          segments: const [
+            ButtonSegment(value: false, label: Text('Le jour même')),
+            ButtonSegment(value: true, label: Text('La veille')),
+          ],
+          selected: {r.dayBefore},
+          onSelectionChanged: (s) => set(r.copyWith(dayBefore: s.first)),
+        ),
+      ],
+      if (service.supported) ...[
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          icon: const Icon(Icons.refresh),
+          label: const Text('Appliquer aux lots en cours'),
+          onPressed: () async {
+            final n = await service.rescheduleAll(lots.incubationLots, config.reminders);
+            if (context.mounted) showInfo(context, 'Rappels mis à jour pour $n lot(s).');
+          },
+        ),
+      ],
+    ]);
   }
 }
 

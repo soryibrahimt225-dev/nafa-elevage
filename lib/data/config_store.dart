@@ -7,6 +7,7 @@ import '../domain/config.dart';
 import '../domain/finance.dart';
 import '../domain/incubation.dart';
 import '../domain/production.dart';
+import '../domain/reminders.dart';
 
 /// Paramètres modifiables (espèces, races, prix, cycles), enregistrés
 /// sur l'appareil.
@@ -52,6 +53,14 @@ class ConfigStore extends ChangeNotifier {
     ImprovedCycle.validate(cycle.selectionMonths, cycle.layingStartMonths, cycle.productionReviewMonths,
         cycle.reformReviewMonths);
     config.cycles[breed] = cycle;
+    await _save();
+  }
+
+  ReminderPrefs get reminders => config.reminders;
+
+  Future<void> setReminders(ReminderPrefs prefs) async {
+    if (prefs.hour < 0 || prefs.hour > 23) throw ArgumentError('Heure invalide.');
+    config.reminders = prefs;
     await _save();
   }
 

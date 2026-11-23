@@ -3,6 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nafa_elevage/data/app_data.dart';
 import 'package:nafa_elevage/data/settings_store.dart';
 import 'package:nafa_elevage/main.dart';
+import 'package:nafa_elevage/data/reminder_service.dart';
+
+import 'fake_reminder_backend.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<FarmSettings> freshSettings([Map<String, Object> values = const {}]) async {
@@ -31,11 +34,11 @@ Future<void> tapKey(WidgetTester t, String key) async {
 void main() {
   final today = DateTime(2026, 11, 22);
 
-  Future<void> pumpPhone(WidgetTester t, FarmSettings s) async {
+  Future<void> pumpPhone(WidgetTester t, FarmSettings s, {ReminderBackend? backend}) async {
     t.view.physicalSize = const Size(360, 740);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
-    final data = await t.runAsync(AppData.load);
+    final data = await t.runAsync(() => AppData.load(backend: backend));
     await t.pumpWidget(NafaApp(data: data!, today: today));
     await t.pumpAndSettle();
   }
@@ -311,5 +314,50 @@ void main() {
     await t.scrollUntilVisible(find.text('Cycle Goliath'), 120, scrollable: find.byType(Scrollable).first);
     expect(find.text('1 février 2027'), findsOneWidget); // sélection à 4 mois
     expect(find.text('1 octobre 2028'), findsOneWidget); // contrôle de réforme à 24 mois
+  });
+
+  testWidgets('Téléphone : après le lot, rappels dans l’agenda ; supprimés à l’éclosion', (t) async {
+    final s = await freshSettings({'nafa.production': 'couveuse'});
+    final phone = FakeReminderBackend();
+    await pumpPhone(t, s, backend: phone);
+    await openMenu(t, 'lotsOeufs');
+    await t.tap(find.byKey(const ValueKey('nouveau-lot-oeufs')));
+    await t.pumpAndSettle();
+    await enterKey(t, 'oeufs', '100');
+    await tapKey(t, 'enregistrer');
+    await t.pumpAndSettle();
+    expect(find.text('Rappels dans l’agenda ?'), findsOneWidget);
+    await t.tap(find.text('Ajouter à l’agenda'));
+    await t.pumpAndSettle();
+    expect(phone.events.length, 2);
+    expect(find.textContaining('2 rappel(s) ajouté(s) à l’agenda'), findsOneWidget);
+    await t.pump(const Duration(seconds: 4));
+    await t.pumpAndSettle();
+
+    await t.tap(find.byKey(const ValueKey('lot-BUR-26-001')));
+    await t.pumpAndSettle();
+    expect(find.text('Agenda du téléphone'), findsOneWidget);
+    await tapKey(t, 'saisir-eclosion');
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('eclos')), '80');
+    await t.tap(find.byKey(const ValueKey('valider-eclosion')));
+    await t.pumpAndSettle();
+    expect(phone.events, isEmpty);
+  });
+
+  testWidgets('Téléphone : agenda refusé → notification', (t) async {
+    final s = await freshSettings({'nafa.production': 'couveuse'});
+    final phone = FakeReminderBackend(calendarGranted: false);
+    await pumpPhone(t, s, backend: phone);
+    await openMenu(t, 'lotsOeufs');
+    await t.tap(find.byKey(const ValueKey('nouveau-lot-oeufs')));
+    await t.pumpAndSettle();
+    await enterKey(t, 'oeufs', '100');
+    await tapKey(t, 'enregistrer');
+    await t.pumpAndSettle();
+    await t.tap(find.text('Ajouter à l’agenda'));
+    await t.pumpAndSettle();
+    expect(phone.notifications.length, 2);
+    expect(find.textContaining('Agenda refusé : 2 notification(s)'), findsOneWidget);
   });
 }

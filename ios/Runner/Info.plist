@@ -2,12 +2,18 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Nafa ajoute à votre agenda les rappels de descente des œufs et d’éclosion.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Nafa ajoute, modifie et supprime dans votre agenda les rappels de descente des œufs et d’éclosion.</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>Nafa ajoute à votre agenda les rappels de descente des œufs et d’éclosion.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Nafa Elevage</string>
+	<string>Nafa Élevage</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
