@@ -191,7 +191,9 @@ class ReportBuilder {
         ReportSection('Effectif', rows: [
           ('Démarré le', RV.date(l.startDate)),
           ('Âge', RV.text('${l.ageAt(today)} jours')),
-          if (l.objective != null) ('Objectif', RV.text(l.objective!.label)),
+          if (l.objectives.isNotEmpty) ('Objectifs', RV.text(objectivesLabel(l.objectives))),
+          for (final o in LotObjective.values)
+            if (l.split[o] case final n?) ('Sujets ${o.shortLabel}', RV.integer(n)),
           if (l.isChickBand)
             ('Origine', RV.text(l.origins.entries.map((e) => '${e.key} (${formatInt(e.value)})').join(', '))),
           ('Effectif de départ', RV.integer(l.initialCount)),
@@ -306,7 +308,7 @@ class ReportBuilder {
   Report laying({DateTime? month}) {
     final lots = data.lots
         .animalLots(_p)
-        .where((l) => _p == ProductionType.pondeuses || l.objective != LotObjective.engraissement)
+        .where((l) => l.forLaying)
         .toList();
     final rows = <List<RV>>[];
     var hensDays = 0;

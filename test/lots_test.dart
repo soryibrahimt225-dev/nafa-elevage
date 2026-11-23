@@ -74,11 +74,11 @@ void main() {
           throwsArgumentError);
     });
     test('aller-retour JSON', () {
-      final l = chair()..objective = LotObjective.ponte;
+      final l = chair()..objectives = {LotObjective.ponte};
       l.addMovement(Movement(date: DateTime(2026, 11, 3), type: MovementType.mortalite, count: 2, note: 'chaleur'));
       final copy = AnimalLot.fromJson(l.toJson());
       expect(copy.current, 498);
-      expect(copy.objective, LotObjective.ponte);
+      expect(copy.objectives, {LotObjective.ponte});
       expect(copy.movements.single.note, 'chaleur');
       expect(copy.startDate, DateTime(2026, 11, 1));
     });
@@ -191,5 +191,31 @@ void main() {
     expect(reloaded.animalLots(ProductionType.ameliorees), isEmpty);
     expect(reloaded.incubationLots.single.code, 'BUR-26-001');
     expect(reloaded.nextIncubationCode(OwnerType.producteur, DateTime(2026, 12, 1)), 'BUR-26-002');
+  });
+
+  group('Races améliorées : plusieurs objectifs dans le même lot', () {
+    AnimalLot goliath() => AnimalLot(id: 'g', code: 'AME-26-001', production: ProductionType.ameliorees, breed: 'Goliath',
+        startDate: DateTime(2026, 9, 1), initialCount: 100, objectives: {...LotObjective.values});
+    test('libellé et ponte', () {
+      final l = goliath();
+      expect(objectivesLabel(l.objectives), 'Engraissement, ponte et reproduction');
+      expect(l.forLaying, isTrue);
+      expect((goliath()..objectives = {LotObjective.engraissement}).forLaying, isFalse);
+    });
+    test('répartition des sujets entre les objectifs', () {
+      final l = goliath()
+        ..setSplit({LotObjective.engraissement: 60, LotObjective.ponte: 30, LotObjective.reproduction: 10});
+      expect(l.splitTotal, 100);
+      expect(() => l.setSplit({LotObjective.engraissement: 80, LotObjective.ponte: 30}), throwsArgumentError);
+      final copy = AnimalLot.fromJson(l.toJson());
+      expect(copy.split[LotObjective.ponte], 30);
+      expect(copy.objectives.length, 3);
+    });
+    test('ancien format (un seul objectif) relu', () {
+      final j = goliath().toJson()
+        ..remove('objectives')
+        ..['objective'] = 'ponte';
+      expect(AnimalLot.fromJson(j).objectives, {LotObjective.ponte});
+    });
   });
 }

@@ -9,6 +9,7 @@ import '../domain/format.dart';
 import '../domain/lots.dart';
 import '../domain/production.dart';
 import 'icons.dart';
+import 'objectives_ui.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -51,7 +52,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   late DateTime _lotDate = _today;
   bool _withLot = true;
   bool _withFeed = true;
-  LotObjective _objective = LotObjective.engraissement;
+  /// Races améliorées : les trois objectifs ensemble par défaut.
+  Set<LotObjective> _objectives = {...LotObjective.values};
   FeedStage _stage = FeedStage.demarrage;
   UserRole _role = UserRole.proprietaire;
 
@@ -106,8 +108,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       case _Step.lot:
         _plan.lot = skip || !_withLot || _plan.breed == null
             ? null
-            : FirstLot(startDate: _lotDate, count: int.parse(_count.text), objective: _objective);
-        _stage = OnboardingPlan.suggestedStage(_p!, _objective);
+            : FirstLot(startDate: _lotDate, count: int.parse(_count.text), objectives: _objectives);
+        _stage = OnboardingPlan.suggestedStage(_p!);
       case _Step.aliment:
         _plan.feeds.clear();
         if (!skip && _withFeed) {
@@ -193,6 +195,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             child: Form(
               key: _form,
               child: ListView(
+                // Chaque étape s'ouvre en haut de l'écran.
+                key: ValueKey('etape-$_index'),
                 padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
                 children: [
                   Image.asset('assets/images/nafa_logo.png',
@@ -265,6 +269,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               onTap: () => setState(() {
                 _plan.production = p;
                 _plan.options.removeWhere((o) => !optionsFor(p).contains(o));
+                // Races améliorées : engraissement, ponte et couvaison ensemble par défaut.
+                if (p == ProductionType.ameliorees) _plan.options.add(OptionalFeature.couvaisonConversion);
                 _breed.clear();
               }),
             ),
@@ -354,15 +360,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
             if (_withLot) ...[
               if (_p == ProductionType.ameliorees) ...[
-                const Text('Objectif du lot', style: TextStyle(fontWeight: FontWeight.w600)),
-                RadioGroup<LotObjective>(
-                  groupValue: _objective,
-                  onChanged: (v) => setState(() => _objective = v ?? _objective),
-                  child: Column(children: [
-                    for (final o in LotObjective.values)
-                      RadioListTile<LotObjective>(value: o, title: Text(o.label), contentPadding: EdgeInsets.zero),
-                  ]),
-                ),
+                ObjectivesPicker(value: _objectives, onChanged: (v) => setState(() => _objectives = v)),
                 const SizedBox(height: 8),
               ],
               DateField(label: 'Date de démarrage', value: _lotDate, last: _today, onChanged: (d) => setState(() => _lotDate = d)),

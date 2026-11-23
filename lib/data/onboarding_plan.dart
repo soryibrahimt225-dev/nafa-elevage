@@ -7,10 +7,11 @@ import 'app_data.dart';
 
 /// Premier lot décrit pendant l'assistant.
 class FirstLot {
-  const FirstLot({required this.startDate, required this.count, this.objective});
+  const FirstLot({required this.startDate, required this.count, this.objectives = const {}});
   final DateTime startDate;
   final int count;
-  final LotObjective? objective;
+  /// Objectifs menés ensemble (races améliorées).
+  final Set<LotObjective> objectives;
 }
 
 /// Aliment et stock de départ décrits pendant l'assistant.
@@ -48,11 +49,8 @@ class OnboardingPlan {
   final List<FarmUser> users = [];
 
   /// Aliment proposé selon la production.
-  static FeedStage suggestedStage(ProductionType p, LotObjective? o) => switch (p) {
-        ProductionType.pondeuses => FeedStage.pondeuse,
-        ProductionType.ameliorees when o == LotObjective.ponte || o == LotObjective.reproduction => FeedStage.demarrage,
-        _ => FeedStage.demarrage,
-      };
+  static FeedStage suggestedStage(ProductionType p) =>
+      p == ProductionType.pondeuses ? FeedStage.pondeuse : FeedStage.demarrage;
 
   /// Enregistre tout. Renvoie le code du premier lot créé, s'il y en a un.
   Future<String?> apply(AppData data, DateTime today) async {
@@ -89,7 +87,7 @@ class OnboardingPlan {
         breed: b,
         startDate: l.startDate,
         initialCount: l.count,
-        objective: p == ProductionType.ameliorees ? (l.objective ?? LotObjective.engraissement) : null,
+        objectives: p == ProductionType.ameliorees ? {...l.objectives} : {},
       ));
     }
 

@@ -6,6 +6,7 @@ import '../domain/lots.dart';
 import '../domain/production.dart';
 import 'app_scope.dart';
 import 'config_scope.dart';
+import 'objectives_ui.dart';
 import 'theme.dart';
 import 'weighing_ui.dart';
 import 'widgets.dart';
@@ -91,8 +92,8 @@ class _AnimalLotTile extends StatelessWidget {
                 '${lot.ageAt(today)} jours · mortalité ${formatPercent(lot.mortalityRate)}',
                 style: const TextStyle(color: NafaColors.textMuted),
               ),
-              if (lot.objective != null)
-                Text(lot.objective!.label, style: const TextStyle(color: NafaColors.textMuted)),
+              if (lot.objectives.isNotEmpty)
+                Text(objectivesLabel(lot.objectives), style: const TextStyle(color: NafaColors.textMuted)),
             ]),
           ),
         ),
@@ -119,13 +120,9 @@ class _AnimalLotFormState extends State<AnimalLotForm> {
   final _count = TextEditingController();
   final _notes = TextEditingController();
   late DateTime _date = widget.today;
-  LotObjective? _objective;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.production == ProductionType.ameliorees) _objective = LotObjective.engraissement;
-  }
+  /// Races améliorées : les trois objectifs ensemble par défaut.
+  late Set<LotObjective> _objectives =
+      widget.production == ProductionType.ameliorees ? {...LotObjective.values} : {};
 
   @override
   void dispose() {
@@ -145,7 +142,7 @@ class _AnimalLotFormState extends State<AnimalLotForm> {
         breed: _breed.text.trim(),
         startDate: _date,
         initialCount: int.parse(_count.text),
-        objective: _objective,
+        objectives: _objectives,
         notes: _notes.text.trim(),
       );
       await widget.store.addAnimalLot(lot);
@@ -198,15 +195,7 @@ class _AnimalLotFormState extends State<AnimalLotForm> {
             IntField(key: const ValueKey('effectif'), controller: _count, label: 'Nombre de sujets au départ', suffix: 'sujets', min: 1),
             if (widget.production == ProductionType.ameliorees) ...[
               const SizedBox(height: 12),
-              const Text('Objectif du lot', style: TextStyle(fontWeight: FontWeight.w600)),
-              RadioGroup<LotObjective>(
-                groupValue: _objective,
-                onChanged: (v) => setState(() => _objective = v),
-                child: Column(children: [
-                  for (final o in LotObjective.values)
-                    RadioListTile<LotObjective>(value: o, title: Text(o.label), contentPadding: EdgeInsets.zero),
-                ]),
-              ),
+              ObjectivesPicker(value: _objectives, onChanged: (v) => setState(() => _objectives = v)),
             ],
             const SizedBox(height: 12),
             TextFormField(
@@ -249,14 +238,18 @@ class AnimalLotDetailScreen extends StatelessWidget {
                   valueColor: lot.mortalityRate >= 0.05 ? NafaColors.urgent : null),
               for (final t in [MovementType.vente, MovementType.reforme, MovementType.autre])
                 if (lot.countOf(t) > 0) InfoRow(t.label, '${formatInt(lot.countOf(t))} sujets'),
-              if (lot.objective != null) InfoRow('Objectif', lot.objective!.label),
+
               if (lot.notes.isNotEmpty) InfoRow('Observations', lot.notes),
             ]),
             if (tracksWeight(lot.production) && AppScope.maybeOf(context) != null) ...[
               const SizedBox(height: 12),
               WeighingCard(data: AppScope.maybeOf(context)!, lot: lot, today: today),
             ],
-            if (lot.production == ProductionType.ameliorees && lot.objective != LotObjective.engraissement) ...[
+            if (lot.production == ProductionType.ameliorees) ...[
+              const SizedBox(height: 12),
+              _ObjectivesCard(store: store, lot: lot),
+            ],
+            if (lot.production == ProductionType.ameliorees && lot.forLaying) ...[
               const SizedBox(height: 12),
               _CycleCard(lot: lot, today: today),
             ],
@@ -392,5 +385,109 @@ class _CycleCard extends StatelessWidget {
       const Text('Repères modifiables dans Paramètres. La réforme n’est jamais automatique.',
           style: TextStyle(color: NafaColors.textMuted, fontSize: 12)),
     ]);
+  }
+}
+
+/// Objectifs du lot (modifiables sans perdre l'historique) et répartition
+/// facultative des sujets entre eux.
+class _ObjectivesCard extends StatelessWidget {
+  const _ObjectivesCard({required this.store, required this.lot});
+  final LotStore store;
+  final AnimalLot lot;
+
+  @override
+  Widget build(BuildContext context) {
+    final rest = lot.current - lot.splitTotal;
+    return SectionCard(title: 'Objectifs et répartition', children: [
+      InfoRow('Objectifs', lot.objectives.isEmpty ? 'aucun' : objectivesLabel(lot.objectives)),
+      if (lot.split.isNotEmpty) ...[
+        for (final o in LotObjective.values)
+          if (lot.split[o] case final n?) InfoRow('Sujets ${o.shortLabel}', formatInt(n)),
+        if (rest > 0) InfoRow('Non répartis', formatInt(rest)),
+      ] else
+        const Text('Répartition facultative : indiquez combien de sujets vont à chaque objectif.',
+            style: TextStyle(color: NafaColors.textMuted, fontSize: 13)),
+      const SizedBox(height: 8),
+      Wrap(spacing: 8, runSpacing: 8, children: [
+        OutlinedButton(
+          key: const ValueKey('modifier-objectifs'),
+          onPressed: () => _editObjectives(context),
+          child: const Text('Changer les objectifs'),
+        ),
+        if (lot.objectives.length > 1 && lot.status == LotStatus.enCours)
+          OutlinedButton(
+            key: const ValueKey('repartir'),
+            onPressed: () => _editSplit(context),
+            child: const Text('Répartir les sujets'),
+          ),
+      ]),
+    ]);
+  }
+
+  Future<void> _editObjectives(BuildContext context) async {
+    var value = {...lot.objectives};
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => StatefulBuilder(
+        builder: (d, setState) => AlertDialog(
+          content: SingleChildScrollView(
+            child: ObjectivesPicker(value: value, onChanged: (v) => setState(() => value = v)),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Annuler')),
+            FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Enregistrer')),
+          ],
+        ),
+      ),
+    );
+    if (ok != true) return;
+    lot.objectives = value;
+    lot.split = {for (final e in lot.split.entries) if (value.contains(e.key)) e.key: e.value};
+    await store.changed();
+  }
+
+  Future<void> _editSplit(BuildContext context) async {
+    final ctrls = {for (final o in lot.objectives) o: TextEditingController(text: lot.split[o]?.toString() ?? '')};
+    final form = GlobalKey<FormState>();
+    await showDialog<void>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: Text('Répartir ${formatInt(lot.current)} sujets'),
+        content: Form(
+          key: form,
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              for (final e in ctrls.entries) ...[
+                IntField(
+                  key: ValueKey('repartition-${e.key.name}'),
+                  controller: e.value,
+                  label: 'Sujets ${e.key.shortLabel}',
+                  optional: true,
+                  max: lot.current,
+                ),
+                const SizedBox(height: 12),
+              ],
+            ]),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d), child: const Text('Annuler')),
+          FilledButton(
+            key: const ValueKey('valider-repartition'),
+            onPressed: () async {
+              if (!form.currentState!.validate()) return;
+              try {
+                lot.setSplit({for (final e in ctrls.entries) e.key: int.tryParse(e.value.text) ?? 0});
+                await store.changed();
+                if (d.mounted) Navigator.pop(d);
+              } catch (e) {
+                if (d.mounted) showError(d, e);
+              }
+            },
+            child: const Text('Enregistrer'),
+          ),
+        ],
+      ),
+    );
   }
 }

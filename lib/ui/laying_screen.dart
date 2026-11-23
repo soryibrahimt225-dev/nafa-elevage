@@ -29,7 +29,7 @@ class LayingScreen extends StatelessWidget {
       .animalLots(_production)
       .where((l) =>
           l.status == LotStatus.enCours &&
-          (_production == ProductionType.pondeuses || l.objective != LotObjective.engraissement))
+          l.forLaying)
       .toList();
 
   @override

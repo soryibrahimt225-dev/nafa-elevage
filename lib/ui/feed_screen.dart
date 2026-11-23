@@ -427,7 +427,7 @@ class _ConsumptionCard extends StatelessWidget {
               'environ ${perDay.round()} g par sujet et par jour depuis le ${formatDate(first!)}',
             if (l.current > 0 && f.grams > 0) '${formatFcfa((f.cost / l.current).round())} par sujet présent',
           ];
-          if (screen._production == ProductionType.pondeuses || l.objective == LotObjective.ponte) {
+          if (l.forLaying) {
             final eggs = screen.data.eggs.forLots({l.code}).fold(0, (n, r) => n + r.table);
             if (eggs > 0) lines.add('${formatFcfa((f.cost / eggs).round())} par œuf de table');
           }

@@ -79,7 +79,8 @@ void main() {
     final s = await freshSettings();
     await pumpPhone(t, s);
     await tapKey(t, 'production-ameliorees');
-    await tapKey(t, 'option-couvaisonConversion');
+    // Couvaison et conversion : cochée d'office pour les races améliorées
+    expect(t.widget<CheckboxListTile>(find.byKey(const ValueKey('option-couvaisonConversion'))).value, isTrue);
     await tapKey(t, 'continuer');
     await t.pumpAndSettle();
     await skipToEnd(t);
@@ -593,8 +594,10 @@ void main() {
     await tapKey(t, 'continuer');
     await t.pumpAndSettle();
     expect(find.text('Créer maintenant un lot de Goliath'), findsOneWidget);
-    await t.tap(find.text('Conservation pour la ponte'));
-    await t.pump();
+    // Les trois objectifs sont cochés ensemble par défaut
+    for (final o in ['engraissement', 'ponte', 'reproduction']) {
+      expect(t.widget<CheckboxListTile>(find.byKey(ValueKey('objectif-$o'))).value, isTrue);
+    }
     await enterKey(t, 'effectif-depart', '120');
     await tapKey(t, 'continuer');
     await t.pumpAndSettle();
@@ -628,7 +631,18 @@ void main() {
     await openMenu(t, 'lots');
     await t.tap(find.byKey(const ValueKey('lot-AME-26-001')));
     await t.pumpAndSettle();
-    expect(find.text('Conservation pour la ponte'), findsOneWidget);
+    await t.scrollUntilVisible(find.byKey(const ValueKey('repartir')), 150, scrollable: find.byType(Scrollable).first);
+    expect(find.text('Engraissement, ponte et reproduction'), findsOneWidget);
+    // Répartition : 70 à l'engraissement, 40 pour la ponte, 10 reproducteurs
+    await tapKey(t, 'repartir');
+    await t.pumpAndSettle();
+    await t.enterText(find.descendant(of: find.byKey(const ValueKey('repartition-engraissement')), matching: find.byType(EditableText)), '70');
+    await t.enterText(find.descendant(of: find.byKey(const ValueKey('repartition-ponte')), matching: find.byType(EditableText)), '40');
+    await t.enterText(find.descendant(of: find.byKey(const ValueKey('repartition-reproduction')), matching: find.byType(EditableText)), '10');
+    await t.tap(find.byKey(const ValueKey('valider-repartition')));
+    await t.pumpAndSettle();
+    expect(find.text('Sujets pour la ponte'), findsOneWidget);
+    expect(find.text('40'), findsOneWidget);
     await t.tap(find.byType(BackButton));
     await t.pumpAndSettle();
     await openMenu(t, 'alimentation');

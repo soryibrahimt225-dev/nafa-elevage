@@ -39,13 +39,29 @@ class Movement {
 
 /// Objectif d'un lot de races améliorées (configurable, modifiable sans perdre
 /// l'historique).
+/// Objectifs d'un lot de races améliorées. Un même lot peut les mener
+/// ensemble (client, 24/11/2026) : une partie à l'engraissement, une partie
+/// gardée pour la ponte, une partie comme reproducteurs pour la couvaison.
 enum LotObjective {
-  engraissement('Engraissement et vente'),
-  ponte('Conservation pour la ponte'),
-  reproduction('Reproduction et couvaison');
+  engraissement('Engraissement et vente', 'à l’engraissement'),
+  ponte('Conservation pour la ponte', 'pour la ponte'),
+  reproduction('Reproduction et couvaison', 'reproducteurs');
 
-  const LotObjective(this.label);
+  const LotObjective(this.label, this.shortLabel);
   final String label;
+  final String shortLabel;
+}
+
+/// « Engraissement, ponte et reproduction ».
+String objectivesLabel(Set<LotObjective> o) {
+  final names = [
+    if (o.contains(LotObjective.engraissement)) 'engraissement',
+    if (o.contains(LotObjective.ponte)) 'ponte',
+    if (o.contains(LotObjective.reproduction)) 'reproduction',
+  ];
+  if (names.isEmpty) return '';
+  final s = names.length == 1 ? names.first : '${names.sublist(0, names.length - 1).join(', ')} et ${names.last}';
+  return s[0].toUpperCase() + s.substring(1);
 }
 
 enum LotStatus {
@@ -67,12 +83,15 @@ class AnimalLot {
     required this.breed,
     required this.startDate,
     required this.initialCount,
-    this.objective,
+    Set<LotObjective>? objectives,
+    Map<LotObjective, int>? split,
     List<Movement>? movements,
     this.closed = false,
     this.notes = '',
     Map<String, int>? origins,
   })  : movements = movements ?? [],
+        objectives = objectives ?? {},
+        split = split ?? {},
         origins = origins ?? const {} {
     if (production == ProductionType.couveuse) {
       if (this.origins.isEmpty) {
@@ -93,7 +112,31 @@ class AnimalLot {
   final String breed;
   final DateTime startDate;
   final int initialCount;
-  LotObjective? objective;
+  /// Objectifs menés ensemble (vide pour la chair et les pondeuses).
+  Set<LotObjective> objectives;
+
+  /// Répartition facultative des sujets entre les objectifs
+  /// (ex. 60 à l'engraissement, 30 pour la ponte, 10 reproducteurs).
+  Map<LotObjective, int> split;
+
+  /// Le lot compte des sujets gardés pour la ponte ou la reproduction.
+  bool get forLaying =>
+      production == ProductionType.pondeuses ||
+      objectives.contains(LotObjective.ponte) ||
+      objectives.contains(LotObjective.reproduction);
+
+  int get splitTotal => split.values.fold(0, (s, n) => s + n);
+
+  /// Enregistre la répartition ; le total ne peut pas dépasser l'effectif.
+  void setSplit(Map<LotObjective, int> values) {
+    final clean = {for (final e in values.entries) if (e.value > 0 && objectives.contains(e.key)) e.key: e.value};
+    final total = clean.values.fold(0, (s, n) => s + n);
+    if (values.values.any((n) => n < 0)) throw ArgumentError('Nombre invalide.');
+    if (total > current) {
+      throw ArgumentError('La répartition (${formatInt(total)}) dépasse l’effectif actuel (${formatInt(current)}).');
+    }
+    split = clean;
+  }
   final List<Movement> movements;
   bool closed;
   String notes;
@@ -151,7 +194,8 @@ class AnimalLot {
         'breed': breed,
         'startDate': _d(startDate),
         'initialCount': initialCount,
-        'objective': objective?.name,
+        if (objectives.isNotEmpty) 'objectives': [for (final o in objectives) o.name],
+        if (split.isNotEmpty) 'split': {for (final e in split.entries) e.key.name: e.value},
         'movements': [for (final m in movements) m.toJson()],
         'closed': closed,
         'notes': notes,
@@ -165,7 +209,14 @@ class AnimalLot {
         breed: j['breed']! as String,
         startDate: DateTime.parse(j['startDate']! as String),
         initialCount: j['initialCount']! as int,
-        objective: j['objective'] == null ? null : LotObjective.values.byName(j['objective']! as String),
+        // Ancien format : un seul objectif.
+        objectives: {
+          if (j['objective'] case final String o) LotObjective.values.byName(o),
+          for (final o in (j['objectives'] as List? ?? const [])) LotObjective.values.byName(o as String),
+        },
+        split: {
+          for (final e in ((j['split'] as Map?) ?? const {}).entries) LotObjective.values.byName(e.key as String): e.value as int,
+        },
         movements: [
           for (final m in (j['movements'] as List? ?? const []))
             Movement.fromJson((m as Map).cast<String, Object?>())

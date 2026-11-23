@@ -18,7 +18,7 @@ Future<AppData> farm() async {
   await d.settings.choose(ProductionType.ameliorees, {OptionalFeature.couvaisonConversion});
   await d.settings.setFarm(FarmProfile(name: 'Ferme de Kati', location: 'Kati', users: [FarmUser('Sory', UserRole.proprietaire)]));
   await d.lots.addAnimalLot(AnimalLot(id: '1', code: 'AME-26-001', production: ProductionType.ameliorees,
-      breed: 'Goliath', startDate: DateTime(2026, 10, 1), initialCount: 120, objective: LotObjective.ponte));
+      breed: 'Goliath', startDate: DateTime(2026, 10, 1), initialCount: 120, objectives: {LotObjective.ponte}));
   await d.finance.addSale(Sale(id: 's', date: DateTime(2026, 11, 20), category: SaleCategory.sujets, quantity: 10,
       unitPrice: 6000, amountPaid: 60000, production: ProductionType.ameliorees));
   await d.config.setPrice(SaleCategory.sujets, 6000);
@@ -53,7 +53,7 @@ void main() {
     expect(d.settings.options, {OptionalFeature.couvaisonConversion}); // liste relue comme liste
     expect(d.settings.farm.displayName, 'Ferme de Kati');
     expect(d.settings.farm.users.single.name, 'Sory');
-    expect(d.lots.animalLots(ProductionType.ameliorees).single.objective, LotObjective.ponte);
+    expect(d.lots.animalLots(ProductionType.ameliorees).single.objectives, {LotObjective.ponte});
     expect(d.finance.accounting().global.sales, 60000);
     expect(d.config.priceFor(SaleCategory.sujets), 6000);
   });
