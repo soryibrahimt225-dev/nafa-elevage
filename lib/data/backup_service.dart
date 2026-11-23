@@ -51,7 +51,7 @@ class BackupService {
 
   /// Clés jamais sauvegardées : rappels du téléphone et gestion des
   /// sauvegardes elles-mêmes.
-  static const _excluded = {'nafa.reminders.v1', _lastAt, _previous};
+  static const _excluded = {'nafa.reminders.v1', 'nafa.sync.v1', _lastAt, _previous};
 
   final SharedPreferences _prefs;
   final DateTime Function() _clock;

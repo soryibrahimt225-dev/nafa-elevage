@@ -6,6 +6,7 @@ import 'package:nafa_elevage/main.dart';
 import 'package:nafa_elevage/data/reminder_service.dart';
 
 import 'fake_reminder_backend.dart';
+import 'fake_sync_api.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<FarmSettings> freshSettings([Map<String, Object> values = const {}]) async {
@@ -44,11 +45,12 @@ Future<void> tapKey(WidgetTester t, String key) async {
 void main() {
   final today = DateTime(2026, 11, 22);
 
-  Future<void> pumpPhone(WidgetTester t, FarmSettings s, {ReminderBackend? backend}) async {
+  Future<void> pumpPhone(WidgetTester t, FarmSettings s, {ReminderBackend? backend, FakeSyncApi? server}) async {
     t.view.physicalSize = const Size(360, 740);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
-    final data = await t.runAsync(() => AppData.load(backend: backend));
+    final data = await t.runAsync(
+        () => AppData.load(backend: backend, syncApi: server == null ? null : (_) => server));
     await t.pumpWidget(NafaApp(data: data!, today: today));
     await t.pumpAndSettle();
   }
@@ -760,5 +762,48 @@ void main() {
     expect(find.text('jamais'), findsOneWidget);
     expect(find.byKey(const ValueKey('restaurer')), findsOneWidget);
     expect(find.byKey(const ValueKey('annuler-restauration')), findsNothing);
+  });
+
+  testWidgets('Compte : créer un compte, mettre la ferme sur le serveur, synchroniser', (t) async {
+    final s = await freshSettings({
+      'nafa.production': 'chair',
+      'nafa.farm.v1': '{"name":"Ferme de Kati","location":"Kati","users":[]}',
+    });
+    final server = FakeSyncApi();
+    await pumpPhone(t, s, server: server);
+    await openMenu(t, 'parametres');
+    await tapKey(t, 'serveur');
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('adresse-serveur')), 'https://nafa.exemple.ml');
+    await t.tap(find.byKey(const ValueKey('valider-serveur')));
+    await t.pumpAndSettle();
+    await tapKey(t, 'creer-compte');
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('compte-telephone')), '76123456');
+    await t.enterText(find.byKey(const ValueKey('compte-nom')), 'Sory');
+    await t.enterText(find.byKey(const ValueKey('compte-mot-de-passe')), 'secret123');
+    await t.tap(find.byKey(const ValueKey('valider-compte')));
+    await t.pumpAndSettle();
+    expect(find.text('Sory · 76123456'), findsOneWidget);
+    expect(find.text('Aucune ferme sur le serveur pour ce compte.'), findsOneWidget);
+    await tapKey(t, 'creer-ferme-serveur');
+    await t.pumpAndSettle();
+    expect(server.data.keys, containsAll(['nafa.production', 'nafa.farm.v1']));
+    expect(find.text('Propriétaire'), findsOneWidget);
+    expect(find.text('rien'), findsOneWidget); // plus rien à envoyer
+    expect(find.byKey(const ValueKey('synchroniser')), findsOneWidget);
+  });
+
+  testWidgets('Compte : adresse invalide refusée', (t) async {
+    final s = await freshSettings({'nafa.production': 'chair'});
+    await pumpPhone(t, s, server: FakeSyncApi());
+    await openMenu(t, 'parametres');
+    await tapKey(t, 'serveur');
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('adresse-serveur')), 'nafa.ml');
+    await t.tap(find.byKey(const ValueKey('valider-serveur')));
+    await t.pumpAndSettle();
+    expect(find.textContaining('https://'), findsWidgets);
+    expect(find.byKey(const ValueKey('creer-compte')), findsOneWidget);
   });
 }

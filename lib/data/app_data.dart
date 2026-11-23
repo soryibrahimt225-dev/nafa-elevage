@@ -1,3 +1,5 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'backup_service.dart';
 import 'config_store.dart';
 import 'egg_store.dart';
@@ -7,6 +9,8 @@ import 'health_store.dart';
 import 'lot_store.dart';
 import 'reminder_service.dart';
 import 'settings_store.dart';
+import 'sync_api.dart';
+import 'sync_service.dart';
 import 'weighing_store.dart';
 
 /// Toutes les données de l'application, chargées au démarrage.
@@ -22,6 +26,7 @@ class AppData {
     required this.feed,
     required this.weights,
     required this.backup,
+    required this.sync,
   });
 
   final FarmSettings settings;
@@ -34,10 +39,12 @@ class AppData {
   final FeedStore feed;
   final WeighingStore weights;
   final BackupService backup;
+  final SyncService sync;
 
   /// [backend] : accès à l'agenda et aux notifications du téléphone
   /// (remplacé sur le web et dans les tests).
-  static Future<AppData> load({ReminderBackend? backend}) async => AppData(
+  /// [syncApi] : accès au serveur (remplacé dans les tests).
+  static Future<AppData> load({ReminderBackend? backend, SyncApi Function(String url)? syncApi}) async => AppData(
         settings: await FarmSettings.load(),
         config: await ConfigStore.load(),
         lots: await LotStore.load(),
@@ -48,5 +55,6 @@ class AppData {
         feed: await FeedStore.load(),
         weights: await WeighingStore.load(),
         backup: await BackupService.load(),
+        sync: SyncService(await SharedPreferences.getInstance(), apiFactory: syncApi),
       );
 }

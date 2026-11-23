@@ -1,0 +1,16 @@
+name: nafa_server
+description: "Serveur de synchronisation de Nafa Élevage (comptes, fermes, rôles, données) avec PostgreSQL."
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.8.0
+dependencies:
+  bcrypt: ^1.2.0
+  crypto: ^3.0.8
+  postgres: ^3.7.0
+  shelf: ^1.4.3
+  shelf_router: ^1.1.5
+dev_dependencies:
+  http: ^1.6.0
+  test: ^1.33.0

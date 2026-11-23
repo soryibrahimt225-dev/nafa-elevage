@@ -14,6 +14,7 @@ import '../domain/reminders.dart';
 import 'app_scope.dart';
 import 'backup_section.dart';
 import 'config_scope.dart';
+import 'sync_section.dart';
 import 'reminder_scope.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -80,6 +81,8 @@ class SettingsScreen extends StatelessWidget {
         if (AppScope.maybeOf(context) case final d?) ...[
           const SizedBox(height: 12),
           BackupSection(service: d.backup, farmName: settings.farm.displayName),
+          const SizedBox(height: 12),
+          SyncSection(sync: d.sync, farmName: settings.farm.displayName, location: settings.farm.location),
         ],
       ],
     );

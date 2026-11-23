@@ -23,7 +23,7 @@ Nafa Élevage est une application web et mobile (Flutter) de gestion d'élevage,
 | 11 bis | Bouton principal « Saisir » sur le tableau de bord : mortalité, œufs, aliment, soin réalisé, vente, dépense ; couveuse : œufs en couveuse, éclosion, mortalité des poussins gardés | ✅ livré |
 | 11 ter | Pesées (chair, races améliorées) : poids moyen, gain moyen quotidien, indice de consommation ; tableau de bord, fiche du lot, rapports, bouton « Saisir » | ✅ livré |
 | 12 | Sauvegarde complète dans un fichier (partage ou téléchargement), restauration vérifiée avec annulation possible | ✅ livré |
-| 13 | Synchronisation entre téléphones (serveur à choisir) et droits d'accès par rôle | à venir |
+| 13 | Comptes utilisateurs et synchronisation entre téléphones : serveur Dart + PostgreSQL (`server/`), droits par rôle appliqués par le serveur, fusion des modifications | ✅ livré (installation : [`docs/serveur.md`](docs/serveur.md)) |
 
 ## Règles appliquées
 
