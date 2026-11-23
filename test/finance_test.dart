@@ -113,4 +113,21 @@ void main() {
     expect(again.expenses.single.status, PaymentStatus.impaye);
     expect(again.lastPrice(SaleCategory.poussins), 700);
   });
+
+  test('Œufs vendus à l’alvéole', () {
+    final s = sale(4, 2500, 10000, c: SaleCategory.oeufsTable, prod: ProductionType.pondeuses);
+    expect(SaleCategory.oeufsTable.unit, 'alvéole');
+    expect(eggsInSale(s, 30), 120);
+    expect(eggsInSale(sale(10, 200, 2000, c: SaleCategory.oeufsFertiles), 30), 10);
+    expect(eggsInSale(sale(1, 700, 700), 30), 0);
+  });
+
+  test('Types vendus : un prix par type de sujet', () async {
+    expect(defaultVariants(ProductionType.ameliorees, SaleCategory.sujets),
+        ['Sujet de 2 mois (engraissement)', 'Sujet de 6 mois', 'Sujet de réforme']);
+    final v = Sale(id: 'v', date: DateTime(2026, 11, 23), category: SaleCategory.sujets, quantity: 5, unitPrice: 4500,
+        amountPaid: 22500, variant: 'Sujet de réforme');
+    expect(v.label, 'Sujets · Sujet de réforme');
+    expect(Sale.fromJson(v.toJson()).variant, 'Sujet de réforme');
+  });
 }

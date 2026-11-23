@@ -77,7 +77,7 @@ class SettingsScreen extends StatelessWidget {
           _CycleSection(config: config),
         ],
         const SizedBox(height: 12),
-        _PricesSection(config: config, categories: saleCategoriesFor(p, settings.options)),
+        _PricesSection(config: config, categories: saleCategoriesFor(p, settings.options), production: p),
         if (AppScope.maybeOf(context) case final d?) ...[
           const SizedBox(height: 12),
           BackupSection(service: d.backup, farmName: settings.farm.displayName),
@@ -472,55 +472,176 @@ class _CycleSection extends StatelessWidget {
 }
 
 class _PricesSection extends StatelessWidget {
-  const _PricesSection({required this.config, required this.categories});
+  const _PricesSection({required this.config, required this.categories, required this.production});
   final ConfigStore config;
   final List<SaleCategory> categories;
+  final ProductionType production;
 
   @override
   Widget build(BuildContext context) => SectionCard(
-        title: 'Prix de référence',
+        title: 'Prix de vente',
         children: [
           const Text('Proposés à chaque vente ; vous pouvez toujours vendre à un autre prix.',
               style: TextStyle(color: NafaColors.textMuted, fontSize: 13)),
           for (final c in categories)
+            if (config.variantsFor(production, c) case final v when v.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.only(top: 10, bottom: 2),
+                child: Text('${c.label} : un prix par type', style: const TextStyle(fontWeight: FontWeight.w700)),
+              ),
+              for (final e in v.entries)
+                ListTile(
+                  key: ValueKey('prix-type-${e.key}'),
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(e.key),
+                  subtitle: Text(e.value == null ? 'Prix non défini' : '${formatFcfa(e.value!)} par ${c.unit}'),
+                  trailing: const Icon(Icons.edit_outlined),
+                  onTap: () => _editVariant(context, c, e.key, e.value),
+                ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => _editVariant(context, c, null, null),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Ajouter un type'),
+                ),
+              ),
+            ] else
+              ListTile(
+                key: ValueKey('prix-${c.name}'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(c == SaleCategory.oeufsTable ? 'Alvéole d’œufs de table' : c.label),
+                subtitle: Text(config.priceFor(c) == null
+                    ? 'Non défini'
+                    : '${formatFcfa(config.priceFor(c)!)} par ${c.unit}'
+                        '${c == SaleCategory.oeufsTable ? ' de ${config.eggsPerTray} œufs' : ''}'),
+                trailing: const Icon(Icons.edit_outlined),
+                onTap: () => _edit(context, c),
+              ),
+          if (categories.contains(SaleCategory.oeufsTable))
             ListTile(
-              key: ValueKey('prix-${c.name}'),
+              key: const ValueKey('oeufs-par-alveole'),
               contentPadding: EdgeInsets.zero,
-              title: Text(c.label),
-              subtitle: Text(config.priceFor(c) == null
-                  ? 'Non défini'
-                  : '${formatFcfa(config.priceFor(c)!)} par ${c.unit}'),
+              title: const Text('Œufs dans une alvéole'),
+              subtitle: Text('${config.eggsPerTray} œufs'),
               trailing: const Icon(Icons.edit_outlined),
-              onTap: () => _edit(context, c),
+              onTap: () async {
+                final n = await _askNumber(context, 'Œufs dans une alvéole', config.eggsPerTray.toString(), null);
+                if (n != null && n > 0) await config.setEggsPerTray(n);
+              },
             ),
         ],
       );
 
   Future<void> _edit(BuildContext context, SaleCategory c) async {
-    final ctrl = TextEditingController(text: config.priceFor(c)?.toString() ?? '');
-    final result = await showDialog<String>(
+    final title = c == SaleCategory.oeufsTable ? 'Prix d’une alvéole d’œufs' : c.label;
+    final r = await _askPrice(context, title, config.priceFor(c));
+    if (r != null) await config.setPrice(c, r.$1);
+  }
+
+  /// Ajoute (name == null) ou modifie un type et son prix ; un nom vidé le retire.
+  Future<void> _editVariant(BuildContext context, SaleCategory c, String? name, int? price) async {
+    final nameCtrl = TextEditingController(text: name ?? '');
+    final priceCtrl = TextEditingController(text: price?.toString() ?? '');
+    final ok = await showDialog<bool>(
       context: context,
       builder: (d) => AlertDialog(
-        title: Text(c.label),
-        content: TextField(
-          key: const ValueKey('valeur-prix'),
-          controller: ctrl,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: InputDecoration(
-              labelText: 'Prix par ${c.unit}', suffixText: 'FCFA', helperText: 'Laisser vide pour ne pas proposer de prix',
-              border: const OutlineInputBorder()),
-        ),
+        title: Text(name ?? 'Nouveau type · ${c.label}'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(
+            key: const ValueKey('nom-type'),
+            controller: nameCtrl,
+            decoration: const InputDecoration(labelText: 'Type (ex. Sujet de 6 mois)', border: OutlineInputBorder()),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            key: const ValueKey('valeur-prix'),
+            controller: priceCtrl,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(labelText: 'Prix par ${c.unit}', suffixText: 'FCFA', border: const OutlineInputBorder()),
+          ),
+        ]),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(d), child: const Text('Annuler')),
-          FilledButton(key: const ValueKey('valider-prix'), onPressed: () => Navigator.pop(d, ctrl.text), child: const Text('Enregistrer')),
+          if (name != null)
+            TextButton(
+              onPressed: () {
+                nameCtrl.clear();
+                Navigator.pop(d, true);
+              },
+              child: const Text('Retirer ce type'),
+            ),
+          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Annuler')),
+          FilledButton(key: const ValueKey('valider-prix'), onPressed: () => Navigator.pop(d, true), child: const Text('Enregistrer')),
         ],
       ),
     );
-    if (result == null) return;
-    await config.setPrice(c, result.isEmpty ? null : int.parse(result));
+    if (ok != true) return;
+    // Modification sur place : chaque type garde sa place dans la liste.
+    final n = nameCtrl.text.trim();
+    final m = <String, int?>{};
+    for (final e in config.variantsFor(production, c).entries) {
+      if (e.key == name) {
+        if (n.isNotEmpty) m[n] = int.tryParse(priceCtrl.text);
+      } else {
+        m[e.key] = e.value;
+      }
+    }
+    if (name == null && n.isNotEmpty) m[n] = int.tryParse(priceCtrl.text);
+    try {
+      await config.setVariants(c, m);
+    } catch (e) {
+      if (context.mounted) showError(context, e);
+    }
   }
+}
+
+/// Saisie d'un prix ; renvoie (prix ou null pour effacer), ou null si annulé.
+Future<(int?,)?> _askPrice(BuildContext context, String title, int? current) async {
+  final ctrl = TextEditingController(text: current?.toString() ?? '');
+  final result = await showDialog<String>(
+    context: context,
+    builder: (d) => AlertDialog(
+      title: Text(title),
+      content: TextField(
+        key: const ValueKey('valeur-prix'),
+        controller: ctrl,
+        autofocus: true,
+        keyboardType: TextInputType.number,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        decoration: const InputDecoration(
+            labelText: 'Prix', suffixText: 'FCFA', helperText: 'Laisser vide pour ne pas proposer de prix', border: OutlineInputBorder()),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(d), child: const Text('Annuler')),
+        FilledButton(key: const ValueKey('valider-prix'), onPressed: () => Navigator.pop(d, ctrl.text), child: const Text('Enregistrer')),
+      ],
+    ),
+  );
+  if (result == null) return null;
+  return (result.isEmpty ? null : int.parse(result),);
+}
+
+Future<int?> _askNumber(BuildContext context, String title, String current, String? suffix) async {
+  final ctrl = TextEditingController(text: current);
+  final result = await showDialog<String>(
+    context: context,
+    builder: (d) => AlertDialog(
+      title: Text(title),
+      content: TextField(
+        controller: ctrl,
+        autofocus: true,
+        keyboardType: TextInputType.number,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        decoration: InputDecoration(suffixText: suffix, border: const OutlineInputBorder()),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(d), child: const Text('Annuler')),
+        FilledButton(onPressed: () => Navigator.pop(d, ctrl.text), child: const Text('Enregistrer')),
+      ],
+    ),
+  );
+  return result == null ? null : int.tryParse(result);
 }
 
 Future<bool> _confirm(BuildContext context, String title, String message) async =>

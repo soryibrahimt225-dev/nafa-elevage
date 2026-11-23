@@ -52,7 +52,7 @@ class FinanceStore extends ChangeNotifier {
     return null;
   }
 
-  String newId() => '${DateTime.now().microsecondsSinceEpoch}-${_rand.nextInt(1 << 32)}';
+  String newId() => '${DateTime.now().microsecondsSinceEpoch}-${_rand.nextInt(1000000000)}';
 
   Future<void> addSale(Sale s) async {
     _sales.add(s);

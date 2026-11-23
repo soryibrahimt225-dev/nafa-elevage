@@ -48,7 +48,7 @@ class LayingScreen extends StatelessWidget {
                   s.production == _production &&
                   (s.category == SaleCategory.oeufsTable || s.category == SaleCategory.oeufsFertiles) &&
                   !s.date.isBefore(weekStart))
-              .fold(0, (n, s) => n + s.quantity);
+              .fold(0, (n, s) => n + eggsInSale(s, data.config.eggsPerTray));
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [

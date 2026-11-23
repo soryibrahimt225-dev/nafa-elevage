@@ -36,7 +36,7 @@ class FeedStore extends ChangeNotifier {
 
   LotFeed forLot(String lotCode) => LotFeed(lotCode, _moves, stocks);
 
-  String newId() => '${DateTime.now().microsecondsSinceEpoch}-${_rand.nextInt(1 << 32)}';
+  String newId() => '${DateTime.now().microsecondsSinceEpoch}-${_rand.nextInt(1000000000)}';
 
   Future<void> saveItem(FeedItem item) async {
     final dup = _items.any((i) => i.id != item.id && i.name.toLowerCase() == item.name.trim().toLowerCase());

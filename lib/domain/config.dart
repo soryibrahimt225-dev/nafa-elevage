@@ -84,7 +84,10 @@ class FarmConfig {
     Map<SaleCategory, int>? prices,
     Map<String, ImprovedCycle>? cycles,
     this.reminders = const ReminderPrefs(),
-  })  : species = species ?? [...defaultSpeciesProfiles],
+    this.eggsPerTray = 30,
+    Map<SaleCategory, Map<String, int?>>? variants,
+  })  : variants = variants ?? {},
+        species = species ?? [...defaultSpeciesProfiles],
         breeds = breeds ?? {for (final e in defaultBreeds.entries) e.key: [...e.value]},
         prices = prices ?? {},
         cycles = cycles ?? {};
@@ -100,6 +103,13 @@ class FarmConfig {
 
   /// Réglages des rappels de couvaison.
   ReminderPrefs reminders;
+
+  /// Nombre d'œufs dans une alvéole (vente des œufs de table).
+  int eggsPerTray;
+
+  /// Types vendus et leur prix, par catégorie (ex. sujets : « Sujet de
+  /// 6 mois » → 7 500 FCFA). Absent = types par défaut de la production.
+  final Map<SaleCategory, Map<String, int?>> variants;
 
   ImprovedCycle cycleFor(String breed) => cycles[breed] ?? const ImprovedCycle();
 
@@ -138,6 +148,8 @@ class FarmConfig {
         'prices': {for (final e in prices.entries) e.key.name: e.value},
         'cycles': {for (final e in cycles.entries) e.key: e.value.toJson()},
         'reminders': reminders.toJson(),
+        'eggsPerTray': eggsPerTray,
+        'variants': {for (final e in variants.entries) e.key.name: e.value},
       };
 
   factory FarmConfig.fromJson(Map<String, Object?> j) => FarmConfig(
@@ -153,6 +165,11 @@ class FarmConfig {
         cycles: {
           for (final e in ((j['cycles'] as Map?) ?? const {}).entries)
             e.key as String: ImprovedCycle.fromJson((e.value as Map).cast()),
+        },
+        eggsPerTray: (j['eggsPerTray'] as int?) ?? 30,
+        variants: {
+          for (final e in ((j['variants'] as Map?) ?? const {}).entries)
+            SaleCategory.values.byName(e.key as String): (e.value as Map).map((k, v) => MapEntry(k as String, v as int?)),
         },
         reminders: j['reminders'] == null
             ? const ReminderPrefs()

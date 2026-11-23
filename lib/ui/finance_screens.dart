@@ -74,7 +74,7 @@ class SalesScreen extends StatelessWidget {
                 for (final s in sales) ...[
                   _OperationTile(
                     key: ValueKey('vente-${s.id}'),
-                    title: '${s.category.label} · ${formatInt(s.quantity)} × ${formatFcfa(s.unitPrice)}',
+                    title: '${s.label} · ${formatInt(s.quantity)} × ${formatFcfa(s.unitPrice)}',
                     subtitle: [
                       formatDate(s.date),
                       if (s.client.isNotEmpty) s.client,
@@ -97,7 +97,7 @@ class SalesScreen extends StatelessWidget {
 
   Future<void> _detail(BuildContext context, Sale s) => _operationSheet(
         context,
-        title: s.category.label,
+        title: s.label,
         rows: [
           ('Date', formatDate(s.date)),
           ('Production', s.production?.label ?? 'Toute la ferme'),
@@ -163,9 +163,18 @@ class _SaleFormState extends State<SaleForm> {
     super.dispose();
   }
 
+  /// Type vendu (ex. « Sujet de 6 mois ») : chaque type a son prix.
+  String? _variant;
+
+  Map<String, int?> get _variants => ConfigScope.read(context).variantsFor(widget.ctx.production, _category);
+
   void _applyLastPrice() {
-    // Prix de référence des Paramètres, sinon dernier prix pratiqué.
-    final p = ConfigScope.read(context).priceFor(_category) ?? widget.ctx.finance.lastPrice(_category);
+    final v = _variants;
+    if (_variant == null || !v.containsKey(_variant)) _variant = v.isEmpty ? null : v.keys.first;
+    // Prix du type choisi, sinon prix de référence, sinon dernier prix pratiqué.
+    final p = (_variant == null ? null : v[_variant]) ??
+        ConfigScope.read(context).priceFor(_category) ??
+        widget.ctx.finance.lastPrice(_category);
     _price.text = p?.toString() ?? '';
   }
 
@@ -219,6 +228,7 @@ class _SaleFormState extends State<SaleForm> {
         lotCode: _lotCode,
         client: _client.text.trim(),
         description: _obs.text.trim(),
+        variant: _variant ?? '',
       );
       // Poussins d'un lot d'œufs : pas plus que les poussins disponibles.
       if (_category == SaleCategory.poussins && _lotCode != null) {
@@ -267,10 +277,28 @@ class _SaleFormState extends State<SaleForm> {
                   selected: cat == _category,
                   onSelected: (_) => setState(() {
                     _category = cat;
+                    _variant = null;
                     _applyLastPrice();
                   }),
                 ),
             ]),
+            if (_variants.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Text('Quel type ?', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              Wrap(spacing: 8, runSpacing: 4, children: [
+                for (final e in _variants.entries)
+                  ChoiceChip(
+                    key: ValueKey('type-${e.key}'),
+                    label: Text(e.value == null ? e.key : '${e.key} · ${formatFcfa(e.value!)}'),
+                    selected: e.key == _variant,
+                    onSelected: (_) => setState(() {
+                      _variant = e.key;
+                      _applyLastPrice();
+                    }),
+                  ),
+              ]),
+            ],
             const SizedBox(height: 12),
             DateField(label: 'Date de la vente', value: _date, last: widget.ctx.today, onChanged: (d) => setState(() => _date = d)),
             if (lots.isNotEmpty) ...[
@@ -314,6 +342,13 @@ class _SaleFormState extends State<SaleForm> {
                 child: InfoRow('Montant de la vente', _amount < 0 ? '—' : formatFcfa(_amount)),
               ),
             ),
+            if (_category == SaleCategory.oeufsTable && (int.tryParse(_qty.text) ?? 0) > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                    '${_qty.text} alvéole(s) = ${formatInt(int.parse(_qty.text) * ConfigScope.read(context).eggsPerTray)} œufs',
+                    style: const TextStyle(color: NafaColors.textMuted)),
+              ),
             SwitchListTile(
               key: const ValueKey('paye-totalite'),
               contentPadding: EdgeInsets.zero,

@@ -38,7 +38,7 @@ Future<AppData> pondeusesFarm() async {
   await d.finance.addExpense(Expense(id: 'e2', date: DateTime(2026, 10, 28), category: ExpenseCategory.mainOeuvre,
       quantity: 1, unitPrice: 10000, amountPaid: 10000));
   await d.finance.addSale(Sale(id: 's1', date: DateTime(2026, 11, 21), category: SaleCategory.oeufsTable,
-      quantity: 900, unitPrice: 100, amountPaid: 60000, production: ProductionType.pondeuses, lotCode: 'PON-26-001',
+      quantity: 30, unitPrice: 3000, amountPaid: 60000, production: ProductionType.pondeuses, lotCode: 'PON-26-001',
       client: 'Client A'));
   await d.eggs.save(EggRecord(lotCode: 'PON-26-001', date: DateTime(2026, 11, 21), collected: 430, broken: 5));
   await d.eggs.save(EggRecord(lotCode: 'PON-26-001', date: DateTime(2026, 11, 22), collected: 440, broken: 5));
@@ -88,7 +88,8 @@ void main() {
     expect(race.rows.map((x) => x.first.display).toSet(), {'Hisex', 'ISA Brown'});
     final ponte = ReportBuilder(d, today: today).laying(month: DateTime(2026, 11));
     expect(row(ponte, 'Synthèse', 'Œufs ramassés'), '870');
-    expect(row(ponte, 'Synthèse', 'Œufs vendus'), '900');
+    expect(row(ponte, 'Synthèse', 'Œufs vendus'), '900'); // 30 alvéoles de 30 œufs
+    expect(row(ponte, 'Synthèse', 'Alvéoles vendues'), '30');
     // 870 œufs pour 2 jours × 480 sujets
     expect(row(ponte, 'Synthèse', 'Taux de ponte moyen'), '90,6 %');
   });

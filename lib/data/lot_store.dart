@@ -45,7 +45,7 @@ class LotStore extends ChangeNotifier {
 
   Iterable<String> get _allCodes => [..._animal.map((l) => l.code), ..._incubation.map((l) => l.code)];
 
-  String newId() => '${DateTime.now().microsecondsSinceEpoch}-${_rand.nextInt(1 << 32)}';
+  String newId() => '${DateTime.now().microsecondsSinceEpoch}-${_rand.nextInt(1000000000)}';
 
   String nextAnimalCode(ProductionType p, DateTime date) => nextLotCode(animalPrefix(p), date, _allCodes);
   String nextIncubationCode(OwnerType o, DateTime date) => nextLotCode(o.prefix, date, _allCodes);

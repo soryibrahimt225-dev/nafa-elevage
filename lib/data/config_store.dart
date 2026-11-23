@@ -66,6 +66,34 @@ class ConfigStore extends ChangeNotifier {
 
   ReminderPrefs get reminders => config.reminders;
 
+  int get eggsPerTray => config.eggsPerTray;
+
+  Future<void> setEggsPerTray(int n) async {
+    if (n <= 0 || n > 100) throw ArgumentError('Nombre d’œufs par alvéole invalide.');
+    config.eggsPerTray = n;
+    await _save();
+  }
+
+  /// Types vendus et leur prix (types par défaut de la production si rien
+  /// n'est encore réglé).
+  Map<String, int?> variantsFor(ProductionType p, SaleCategory c) =>
+      Map.unmodifiable(config.variants[c] ?? {for (final v in defaultVariants(p, c)) v: null});
+
+  Future<void> setVariants(SaleCategory c, Map<String, int?> variants) async {
+    for (final e in variants.entries) {
+      if (e.key.trim().isEmpty) throw ArgumentError('Chaque type doit avoir un nom.');
+      if (e.value != null && e.value! < 0) throw ArgumentError('Le prix ne peut pas être négatif.');
+    }
+    config.variants[c] = {for (final e in variants.entries) e.key.trim(): e.value};
+    await _save();
+  }
+
+  Future<void> setVariantPrice(ProductionType p, SaleCategory c, String variant, int? price) async {
+    final m = {...variantsFor(p, c)};
+    m[variant] = price;
+    await setVariants(c, m);
+  }
+
   Future<void> setReminders(ReminderPrefs prefs) async {
     if (prefs.hour < 0 || prefs.hour > 23) throw ArgumentError('Heure invalide.');
     config.reminders = prefs;

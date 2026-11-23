@@ -302,7 +302,7 @@ void main() {
     final s = await freshSettings({'nafa.production': 'couveuse'});
     await pumpPhone(t, s);
     await openMenu(t, 'parametres');
-    await tapKey(t, 'prix-poussins');
+    await tapKey(t, 'prix-type-Poussin d’un jour');
     await t.pumpAndSettle();
     await t.enterText(find.byKey(const ValueKey('valeur-prix')), '750');
     await t.tap(find.byKey(const ValueKey('valider-prix')));
@@ -313,6 +313,7 @@ void main() {
     await t.tap(find.byKey(const ValueKey('nouvelle-vente')));
     await t.pumpAndSettle();
     await enterKey(t, 'quantite', '10');
+    await t.scrollUntilVisible(find.text('7\u00A0500\u00A0FCFA'), 150, scrollable: find.byType(Scrollable).first);
     expect(find.text('7\u00A0500\u00A0FCFA'), findsOneWidget);
   });
 
@@ -597,18 +598,27 @@ void main() {
     await enterKey(t, 'effectif-depart', '120');
     await tapKey(t, 'continuer');
     await t.pumpAndSettle();
-    await enterKey(t, 'sacs-stock', '4');
-    await enterKey(t, 'prix-sac', '24000');
+    // Un prix par aliment : démarrage et croissance (la finition est décochée)
+    await enterKey(t, 'prix-sac-demarrage', '24000');
+    await enterKey(t, 'sacs-demarrage', '4');
+    await enterKey(t, 'prix-sac-croissance', '22500');
+    await tapKey(t, 'aliment-finition');
     await tapKey(t, 'continuer');
     await t.pumpAndSettle();
-    await enterKey(t, 'prix-sujets', '6000');
+    // Un prix par type de sujet, et l'alvéole d'œufs
+    await enterKey(t, 'prix-type-Sujet de 2 mois (engraissement)', '3500');
+    await enterKey(t, 'prix-type-Sujet de 6 mois', '6000');
+    await enterKey(t, 'prix-type-Sujet de réforme', '4500');
+    await enterKey(t, 'prix-oeufsTable', '2500');
     await tapKey(t, 'continuer');
     await t.pumpAndSettle();
     await enterKey(t, 'nom-utilisateur', 'Sory');
     await tapKey(t, 'ajouter-utilisateur');
     await t.pumpAndSettle();
-    expect(find.textContaining('Propriétaire'), findsWidgets);
+    expect(find.textContaining('Propriétaire', skipOffstage: false), findsWidgets);
+    await t.scrollUntilVisible(find.textContaining('Goliath · 120 sujets'), 150, scrollable: find.byType(Scrollable).first);
     expect(find.textContaining('Goliath · 120 sujets'), findsOneWidget); // récapitulatif
+    expect(find.text('Aliment démarrage'), findsOneWidget);
     await tapKey(t, 'terminer');
     await t.pumpAndSettle();
 
@@ -624,9 +634,22 @@ void main() {
     await openMenu(t, 'alimentation');
     expect(find.textContaining('200\u00A0kg · 4,0 sac(s)'), findsOneWidget);
     expect(find.text('480\u00A0FCFA par kg'), findsOneWidget);
+    await t.scrollUntilVisible(find.text('Aliment croissance'), 150, scrollable: find.byType(Scrollable).first);
+    expect(find.text('22\u00A0500\u00A0FCFA'), findsOneWidget); // prix du sac de croissance
+    expect(find.text('Aliment finition'), findsNothing);
     await openMenu(t, 'parametres');
     await t.scrollUntilVisible(find.text('6\u00A0000\u00A0FCFA par sujet'), 150, scrollable: find.byType(Scrollable).first);
     expect(find.text('6\u00A0000\u00A0FCFA par sujet'), findsOneWidget);
+    expect(find.text('2\u00A0500\u00A0FCFA par alvéole de 30 œufs'), findsOneWidget);
+
+    // À la vente : choix du type, prix proposé
+    await openMenu(t, 'ventes');
+    await t.tap(find.byKey(const ValueKey('nouvelle-vente')));
+    await t.pumpAndSettle();
+    await tapKey(t, 'type-Sujet de réforme');
+    await enterKey(t, 'quantite', '10');
+    await t.scrollUntilVisible(find.text('45\u00A0000\u00A0FCFA'), 150, scrollable: find.byType(Scrollable).first);
+    expect(find.text('45\u00A0000\u00A0FCFA'), findsOneWidget);
   });
 
   testWidgets('Assistant couveuse : 5 étapes, espèce principale proposée en premier', (t) async {

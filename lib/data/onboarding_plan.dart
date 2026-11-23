@@ -35,8 +35,16 @@ class OnboardingPlan {
   /// (couveuse, identifiant d'espèce).
   String? breed;
   FirstLot? lot;
-  FirstFeed? feed;
+
+  /// Aliments de départ : un par stade, chacun avec son prix.
+  final List<FirstFeed> feeds = [];
   final Map<SaleCategory, int> prices = {};
+
+  /// Prix par type vendu (ex. sujets : « Sujet de 6 mois » → 7 500).
+  final Map<SaleCategory, Map<String, int?>> variantPrices = {};
+
+  /// Œufs par alvéole (vente des œufs de table).
+  int? eggsPerTray;
   final List<FarmUser> users = [];
 
   /// Aliment proposé selon la production.
@@ -55,6 +63,10 @@ class OnboardingPlan {
     for (final e in prices.entries) {
       await data.config.setPrice(e.key, e.value);
     }
+    for (final e in variantPrices.entries) {
+      await data.config.setVariants(e.key, e.value);
+    }
+    if (eggsPerTray != null) await data.config.setEggsPerTray(eggsPerTray!);
 
     final b = breed?.trim();
     if (b != null && b.isNotEmpty) {
@@ -81,9 +93,13 @@ class OnboardingPlan {
       ));
     }
 
-    final f = feed;
-    if (f != null && f.name.trim().isNotEmpty) {
-      final item = FeedItem(id: data.feed.newId(), name: f.name.trim(), stage: f.stage, kgPerBag: f.kgPerBag);
+    for (final f in feeds.where((f) => f.name.trim().isNotEmpty)) {
+      final item = FeedItem(
+          id: data.feed.newId(),
+          name: f.name.trim(),
+          stage: f.stage,
+          kgPerBag: f.kgPerBag,
+          bagPrice: f.pricePerBag > 0 ? f.pricePerBag : null);
       await data.feed.saveItem(item);
       if (f.bags > 0) {
         // Stock déjà présent : pas de dépense créée (achat antérieur).

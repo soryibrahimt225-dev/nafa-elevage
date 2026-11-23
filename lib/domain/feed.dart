@@ -25,10 +25,12 @@ class FeedItem {
     this.kgPerBag = 50,
     this.alertKg,
     this.supplier = '',
+    this.bagPrice,
   }) {
     if (name.trim().isEmpty) throw ArgumentError('Indiquez le nom de l’aliment.');
     if (kgPerBag <= 0) throw ArgumentError('Le poids du sac doit être supérieur à 0.');
     if (alertKg != null && alertKg! < 0) throw ArgumentError('Le seuil d’alerte ne peut pas être négatif.');
+    if (bagPrice != null && bagPrice! < 0) throw ArgumentError('Le prix ne peut pas être négatif.');
   }
 
   final String id;
@@ -42,6 +44,10 @@ class FeedItem {
   final int? alertKg;
   final String supplier;
 
+  /// Prix habituel d'un sac (FCFA), proposé à chaque achat : chaque aliment
+  /// (démarrage, croissance, finition, pondeuse…) a son propre prix.
+  final int? bagPrice;
+
   Map<String, Object?> toJson() => {
         'id': id,
         'name': name,
@@ -49,6 +55,7 @@ class FeedItem {
         'kgPerBag': kgPerBag,
         'alertKg': alertKg,
         'supplier': supplier,
+        if (bagPrice != null) 'bagPrice': bagPrice,
       };
 
   factory FeedItem.fromJson(Map<String, Object?> j) => FeedItem(
@@ -58,8 +65,17 @@ class FeedItem {
         kgPerBag: (j['kgPerBag'] as int?) ?? 50,
         alertKg: j['alertKg'] as int?,
         supplier: (j['supplier'] as String?) ?? '',
+        bagPrice: j['bagPrice'] as int?,
       );
 }
+
+/// Aliments proposés selon la production (un par stade, chacun son prix).
+List<FeedStage> defaultFeedStages(String production) => switch (production) {
+      'chair' => const [FeedStage.demarrage, FeedStage.croissance, FeedStage.finition],
+      'pondeuses' => const [FeedStage.demarrage, FeedStage.poulette, FeedStage.pondeuse],
+      'ameliorees' => const [FeedStage.demarrage, FeedStage.croissance, FeedStage.finition, FeedStage.pondeuse],
+      _ => const [],
+    };
 
 enum FeedMoveType {
   achat('Achat'),

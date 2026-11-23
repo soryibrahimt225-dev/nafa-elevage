@@ -4,11 +4,12 @@ import 'production.dart';
 /// sont séparés (audit, point 13).
 enum SaleCategory {
   poussins('Poussins', 'poussin'),
-  sujets('Sujets (poulets, poulettes, réformes)', 'sujet'),
-  oeufsTable('Œufs de table', 'œuf'),
+  sujets('Sujets', 'sujet'),
+  // Les œufs de table se vendent à l'alvéole (client, point du 23/11/2026).
+  oeufsTable('Œufs de table (à l’alvéole)', 'alvéole'),
   oeufsFertiles('Œufs fertiles', 'œuf'),
   serviceCouvaison('Service de couvaison', 'œuf'),
-  alveoles('Alvéoles', 'alvéole'),
+  alveoles('Alvéoles vides', 'alvéole'),
   autre('Autre', 'unité');
 
   const SaleCategory(this.label, this.unit);
@@ -70,6 +71,7 @@ class Sale {
     this.client = '',
     this.description = '',
     this.discount = 0,
+    this.variant = '',
     required this.amountPaid,
   }) {
     _checkAmounts(quantity, unitPrice, discount, amountPaid);
@@ -87,6 +89,9 @@ class Sale {
   final String client;
   final String description;
   final int discount;
+
+  /// Type vendu (ex. « Sujet de 6 mois », « Poussin d'un jour »).
+  final String variant;
   int amountPaid;
 
   int get amount => quantity * unitPrice - discount;
@@ -111,8 +116,12 @@ class Sale {
         'client': client,
         'description': description,
         'discount': discount,
+        if (variant.isNotEmpty) 'variant': variant,
         'amountPaid': amountPaid,
       };
+
+  /// Libellé complet : catégorie et type vendu.
+  String get label => variant.isEmpty ? category.label : '${category.label} · $variant';
 
   factory Sale.fromJson(Map<String, Object?> j) => Sale(
         id: j['id']! as String,
@@ -125,6 +134,7 @@ class Sale {
         client: (j['client'] as String?) ?? '',
         description: (j['description'] as String?) ?? '',
         discount: (j['discount'] as int?) ?? 0,
+        variant: (j['variant'] as String?) ?? '',
         amountPaid: j['amountPaid']! as int,
       );
 }
@@ -328,7 +338,6 @@ List<SaleCategory> saleCategoriesFor(ProductionType p, Set<OptionalFeature> opti
     case ProductionType.pondeuses:
       return [
         SaleCategory.oeufsTable,
-        SaleCategory.alveoles,
         SaleCategory.sujets,
         if (couvaison) ...[SaleCategory.oeufsFertiles, SaleCategory.poussins],
         SaleCategory.autre,
@@ -344,3 +353,26 @@ List<SaleCategory> saleCategoriesFor(ProductionType p, Set<OptionalFeature> opti
       ];
   }
 }
+
+/// Nombre d'œufs d'une vente (les œufs de table se vendent à l'alvéole).
+int eggsInSale(Sale s, int eggsPerTray) => switch (s.category) {
+      SaleCategory.oeufsTable => s.quantity * eggsPerTray,
+      SaleCategory.oeufsFertiles => s.quantity,
+      _ => 0,
+    };
+
+/// Types vendus proposés par défaut, avec un prix chacun (client : chaque
+/// genre de sujet a son prix — engraissement 2 mois, 6 mois, réforme…).
+/// Le producteur peut les renommer, en ajouter ou en retirer.
+List<String> defaultVariants(ProductionType p, SaleCategory c) => switch ((p, c)) {
+      (ProductionType.chair, SaleCategory.sujets) => const ['Poulet prêt à vendre'],
+      (ProductionType.ameliorees, SaleCategory.sujets) => const [
+          'Sujet de 2 mois (engraissement)',
+          'Sujet de 6 mois',
+          'Sujet de réforme',
+        ],
+      (ProductionType.pondeuses, SaleCategory.sujets) => const ['Poulette', 'Poule de réforme'],
+      (ProductionType.couveuse, SaleCategory.sujets) => const ['Sujet de 1 mois', 'Sujet de 2 mois'],
+      (_, SaleCategory.poussins) => const ['Poussin d’un jour', 'Poussin de 2 semaines', 'Poussin d’un mois'],
+      _ => const [],
+    };

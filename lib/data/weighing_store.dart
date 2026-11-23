@@ -27,7 +27,7 @@ class WeighingStore extends ChangeNotifier {
   List<Weighing> forLot(String code) =>
       _list.where((w) => w.lotCode == code).toList()..sort((a, b) => a.date.compareTo(b.date));
 
-  String newId() => '${DateTime.now().microsecondsSinceEpoch}-${_rand.nextInt(1 << 32)}';
+  String newId() => '${DateTime.now().microsecondsSinceEpoch}-${_rand.nextInt(1000000000)}';
 
   /// Une pesée par lot et par jour : une nouvelle saisie remplace la précédente.
   Future<void> save(Weighing w) async {

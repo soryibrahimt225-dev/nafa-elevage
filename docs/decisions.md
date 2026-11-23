@@ -24,3 +24,6 @@ Chaque décision indique sa source : **client** (validée par le client), ou **p
 | 23/11/2026 | Serveur | Serveur propre en Dart avec **PostgreSQL** (demande du client), comptes par numéro de téléphone et mot de passe ; les téléphones passent par l'API, jamais directement par la base. | client |
 | 23/11/2026 | Droits par rôle | Appliqués par le serveur (tableau dans docs/serveur.md) ; une modification non autorisée est annulée sur le téléphone. | proposition |
 | 23/11/2026 | Conflits | Fusion enregistrement par enregistrement (ajouts gardés des deux côtés, suppressions respectées, la modification du téléphone l'emporte sur le même champ). | proposition |
+| 24/11/2026 | Vente des œufs | Les œufs de table se vendent **à l'alvéole** ; nombre d'œufs par alvéole réglable (30 par défaut) ; les rapports comptent les œufs et les alvéoles. | client |
+| 24/11/2026 | Prix des sujets | **Un prix par type de sujet** (races améliorées : 2 mois engraissement, 6 mois, réforme ; pondeuses : poulette, réforme ; poussins : 1 jour, 2 semaines, 1 mois). Types modifiables ; à la vente, on choisit le type et son prix est proposé. | client |
+| 24/11/2026 | Prix des aliments | **Un prix par aliment** (démarrage, croissance, finition, pondeuse…) dans l'assistant et sur chaque fiche d'aliment ; proposé à chaque achat. | client |

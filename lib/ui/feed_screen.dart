@@ -77,6 +77,7 @@ class FeedScreen extends StatelessWidget {
   Future<void> _itemDialog(BuildContext context, FeedItem? item) async {
     final name = TextEditingController(text: item?.name ?? '');
     final bag = TextEditingController(text: '${item?.kgPerBag ?? 50}');
+    final bagPrice = TextEditingController(text: item?.bagPrice?.toString() ?? '');
     final alert = TextEditingController(text: item?.alertKg?.toString() ?? '');
     final supplier = TextEditingController(text: item?.supplier ?? '');
     var stage = item?.stage ?? FeedStage.demarrage;
@@ -107,6 +108,8 @@ class FeedScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 IntField(controller: bag, label: 'Poids d’un sac', suffix: 'kg', min: 1, max: 1000),
                 const SizedBox(height: 12),
+                IntField(key: const ValueKey('prix-du-sac'), controller: bagPrice, label: 'Prix habituel d’un sac', suffix: 'FCFA', optional: true),
+                const SizedBox(height: 12),
                 IntField(controller: alert, label: 'Alerte si le stock passe sous', suffix: 'kg', optional: true),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -130,6 +133,7 @@ class FeedScreen extends StatelessWidget {
                     kgPerBag: int.parse(bag.text),
                     alertKg: alert.text.isEmpty ? null : int.parse(alert.text),
                     supplier: supplier.text.trim(),
+                    bagPrice: int.tryParse(bagPrice.text),
                   ));
                   if (d.mounted) Navigator.pop(d);
                 } catch (e) {
@@ -147,7 +151,7 @@ class FeedScreen extends StatelessWidget {
   /// Achat en sacs, avec création de la dépense correspondante.
   Future<void> _purchase(BuildContext context, FeedItem item) async {
     final bags = TextEditingController();
-    final price = TextEditingController();
+    final price = TextEditingController(text: item.bagPrice?.toString() ?? '');
     final form = GlobalKey<FormState>();
     var withExpense = true;
     await showDialog<void>(
@@ -362,6 +366,7 @@ class _StockCard extends StatelessWidget {
           ? const StatusChip('Stock bas', NafaColors.urgent)
           : StatusChip(i.stage.label, NafaColors.done),
       children: [
+        if (i.bagPrice != null) InfoRow('Prix du sac de ${i.kgPerBag} kg', formatFcfa(i.bagPrice!)),
         InfoRow('Stock restant',
             '${formatKg(stock.remainingGrams)} · ${bags.toStringAsFixed(1).replaceAll('.', ',')} sac(s)',
             valueColor: stock.low ? NafaColors.urgent : null),

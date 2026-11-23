@@ -114,6 +114,11 @@ class ReportBuilder {
           table: ReportTable(headers: const ['Catégorie', 'Montant (FCFA)'], rows: [
             for (final e in acc.salesByCategory.entries) [RV.text(e.key.label), RV.money(e.value)],
           ])),
+      if (data.finance.sales.any((s) => _inPeriod(s.date, month) && s.variant.isNotEmpty))
+        ReportSection('Ventes par type',
+            table: ReportTable(headers: const ['Type vendu', 'Quantité', 'Montant (FCFA)'], rows: [
+              for (final e in _byVariant(month).entries) [RV.text(e.key), RV.integer(e.value.$1), RV.money(e.value.$2)],
+            ])),
       ReportSection('Dépenses par catégorie',
           table: ReportTable(headers: const ['Catégorie', 'Montant (FCFA)'], rows: [
             for (final e in acc.expensesByCategory.entries) [RV.text(e.key.label), RV.money(e.value)],
@@ -125,6 +130,16 @@ class ReportBuilder {
                 [RV.text(e.key), RV.money(e.value)],
             ])),
     ];
+  }
+
+  Map<String, (int, int)> _byVariant(DateTime? month) {
+    final m = <String, (int, int)>{};
+    for (final s in data.finance.sales.where((s) => _inPeriod(s.date, month))) {
+      final k = s.label;
+      final cur = m[k] ?? (0, 0);
+      m[k] = (cur.$1 + s.quantity, cur.$2 + s.amount);
+    }
+    return m;
   }
 
   Report financial({DateTime? month}) {
@@ -332,7 +347,8 @@ class ReportBuilder {
           ('Œufs fertiles mis de côté', RV.integer(t.fertile)),
           ('Œufs de table', RV.integer(t.table)),
           ('Taux de ponte moyen', RV.pct(layingRate(t.collected, hensDays))),
-          ('Œufs vendus', RV.integer(sold.fold(0, (n, s) => n + s.quantity))),
+          ('Œufs vendus', RV.integer(sold.fold(0, (n, s) => n + eggsInSale(s, data.config.eggsPerTray)))),
+          ('Alvéoles vendues', RV.integer(sold.where((s) => s.category == SaleCategory.oeufsTable).fold(0, (n, s) => n + s.quantity))),
           ('Ventes d’œufs', RV.money(sold.fold(0, (n, s) => n + s.amount))),
         ]),
         ReportSection('Par lot',

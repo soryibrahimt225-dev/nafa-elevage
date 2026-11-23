@@ -65,4 +65,19 @@ void main() {
     expect(() => c.addBreed(ProductionType.chair, 'cobb 500'), throwsArgumentError);
     expect(() => c.setPrice(SaleCategory.poussins, -1), throwsArgumentError);
   });
+
+  test('Types vendus et œufs par alvéole enregistrés', () async {
+    SharedPreferences.setMockInitialValues({});
+    final c = await ConfigStore.load();
+    expect(c.variantsFor(ProductionType.ameliorees, SaleCategory.sujets).keys, contains('Sujet de 6 mois'));
+    await c.setVariantPrice(ProductionType.ameliorees, SaleCategory.sujets, 'Sujet de 6 mois', 6000);
+    await c.setEggsPerTray(30);
+    final again = await ConfigStore.load();
+    final v = again.variantsFor(ProductionType.ameliorees, SaleCategory.sujets);
+    expect(v['Sujet de 6 mois'], 6000);
+    expect(v.keys.first, 'Sujet de 2 mois (engraissement)'); // l'ordre est gardé
+    expect(again.eggsPerTray, 30);
+    expect(() => c.setVariants(SaleCategory.sujets, {' ': 10}), throwsArgumentError);
+    expect(() => c.setEggsPerTray(0), throwsArgumentError);
+  });
 }

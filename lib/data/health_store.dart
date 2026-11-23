@@ -40,7 +40,7 @@ class HealthStore extends ChangeNotifier {
     return list;
   }
 
-  String newId() => '${DateTime.now().microsecondsSinceEpoch}-${_rand.nextInt(1 << 32)}';
+  String newId() => '${DateTime.now().microsecondsSinceEpoch}-${_rand.nextInt(1000000000)}';
 
   Future<void> add(HealthRecord r) async {
     _records.add(r);

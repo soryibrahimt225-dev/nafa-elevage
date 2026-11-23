@@ -38,11 +38,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _location = TextEditingController();
   final _breed = TextEditingController();
   final _count = TextEditingController();
-  final _feedName = TextEditingController();
   final _bagKg = TextEditingController(text: '50');
-  final _bags = TextEditingController();
-  final _bagPrice = TextEditingController();
+
+  /// Un aliment par stade (démarrage, croissance…), chacun son prix.
+  final List<_FeedRow> _feedRows = [];
   final Map<SaleCategory, TextEditingController> _prices = {};
+
+  /// Prix par type vendu : catégorie → type → champ.
+  final Map<SaleCategory, Map<String, TextEditingController>> _variantPrices = {};
+  final _eggsPerTray = TextEditingController(text: '30');
   final _userName = TextEditingController();
   late DateTime _lotDate = _today;
   bool _withLot = true;
@@ -67,7 +71,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   void dispose() {
-    for (final c in [_farmName, _location, _breed, _count, _feedName, _bagKg, _bags, _bagPrice, _userName, ..._prices.values]) {
+    for (final c in [
+      _farmName, _location, _breed, _count, _bagKg, _userName, _eggsPerTray, ..._prices.values,
+      for (final r in _feedRows) ...[r.bags, r.price],
+      for (final m in _variantPrices.values) ...m.values,
+    ]) {
       c.dispose();
     }
     super.dispose();
@@ -101,22 +109,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             : FirstLot(startDate: _lotDate, count: int.parse(_count.text), objective: _objective);
         _stage = OnboardingPlan.suggestedStage(_p!, _objective);
       case _Step.aliment:
-        _plan.feed = skip || !_withFeed || _feedName.text.trim().isEmpty
-            ? null
-            : FirstFeed(
-                name: _feedName.text.trim(),
-                stage: _stage,
-                kgPerBag: int.tryParse(_bagKg.text) ?? 50,
-                bags: int.tryParse(_bags.text) ?? 0,
-                pricePerBag: int.tryParse(_bagPrice.text) ?? 0,
-              );
+        _plan.feeds.clear();
+        if (!skip && _withFeed) {
+          for (final r in _feedRows.where((r) => r.enabled)) {
+            _plan.feeds.add(FirstFeed(
+              name: 'Aliment ${r.stage.label.toLowerCase()}',
+              stage: r.stage,
+              kgPerBag: int.tryParse(_bagKg.text) ?? 50,
+              bags: int.tryParse(r.bags.text) ?? 0,
+              pricePerBag: int.tryParse(r.price.text) ?? 0,
+            ));
+          }
+        }
       case _Step.prix:
         _plan.prices.clear();
+        _plan.variantPrices.clear();
+        _plan.eggsPerTray = null;
         if (!skip) {
           for (final e in _prices.entries) {
             final v = int.tryParse(e.value.text);
             if (v != null && v > 0) _plan.prices[e.key] = v;
           }
+          for (final e in _variantPrices.entries) {
+            _plan.variantPrices[e.key] = {for (final v in e.value.entries) v.key: int.tryParse(v.value.text)};
+          }
+          if (_prices.containsKey(SaleCategory.oeufsTable)) _plan.eggsPerTray = int.tryParse(_eggsPerTray.text);
         }
       case _Step.utilisateurs:
         if (skip) {
@@ -142,6 +159,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   String? _speciesId;
+
+  Future<void> _addVariant(SaleCategory c) async {
+    final name = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: Text('Nouveau type · ${c.label}'),
+        content: TextField(
+          key: const ValueKey('nom-type'),
+          controller: name,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Nom (ex. Sujet de 4 mois)', border: OutlineInputBorder()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Annuler')),
+          FilledButton(key: const ValueKey('valider-type'), onPressed: () => Navigator.pop(d, true), child: const Text('Ajouter')),
+        ],
+      ),
+    );
+    final n = name.text.trim();
+    if (ok == true && n.isNotEmpty) setState(() => _variantPrices[c]![n] = TextEditingController());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -334,61 +373,123 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         ];
 
       case _Step.aliment:
-        if (_feedName.text.isEmpty) _feedName.text = 'Aliment ${_stage.label.toLowerCase()}';
+        if (_feedRows.isEmpty) {
+          for (final st in defaultFeedStages(_p!.name)) {
+            _feedRows.add(_FeedRow(st, enabled: st == _stage || _p != ProductionType.ameliorees || st != FeedStage.pondeuse));
+          }
+        }
         return [
-          _title('Votre aliment', 'Pour suivre le stock et le coût de l’alimentation.'),
+          _title('Vos aliments', 'Chaque aliment a son prix : indiquez le prix du sac et, si vous en avez, les sacs en stock.'),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             value: _withFeed,
             onChanged: (v) => setState(() => _withFeed = v),
-            title: const Text('Ajouter un aliment maintenant'),
+            title: const Text('Ajouter mes aliments maintenant'),
           ),
           if (_withFeed) ...[
-            TextFormField(
-              key: const ValueKey('nom-aliment'),
-              controller: _feedName,
-              decoration: const InputDecoration(labelText: 'Nom de l’aliment', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<FeedStage>(
-              initialValue: _stage,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Stade', border: OutlineInputBorder()),
-              items: [for (final s in FeedStage.values) DropdownMenuItem(value: s, child: Text(s.label))],
-              onChanged: (v) => setState(() => _stage = v ?? _stage),
-            ),
-            const SizedBox(height: 12),
             IntField(controller: _bagKg, label: 'Poids d’un sac', suffix: 'kg', min: 1),
             const SizedBox(height: 12),
-            Row(children: [
-              Expanded(
-                  child: IntField(
-                      key: const ValueKey('sacs-stock'), controller: _bags, label: 'Sacs en stock', optional: true)),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: IntField(
-                      key: const ValueKey('prix-sac'), controller: _bagPrice, label: 'Prix d’un sac', suffix: 'FCFA', optional: true)),
-            ]),
+            for (final r in _feedRows)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                  child: Column(children: [
+                    CheckboxListTile(
+                      key: ValueKey('aliment-${r.stage.name}'),
+                      contentPadding: EdgeInsets.zero,
+                      value: r.enabled,
+                      onChanged: (v) => setState(() => r.enabled = v ?? false),
+                      title: Text('Aliment ${r.stage.label.toLowerCase()}',
+                          style: const TextStyle(fontWeight: FontWeight.w600)),
+                      controlAffinity: ListTileControlAffinity.leading,
+                    ),
+                    if (r.enabled)
+                      Row(children: [
+                        Expanded(
+                          child: IntField(
+                              key: ValueKey('prix-sac-${r.stage.name}'),
+                              controller: r.price,
+                              label: 'Prix du sac',
+                              suffix: 'FCFA',
+                              optional: true),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: IntField(
+                              key: ValueKey('sacs-${r.stage.name}'), controller: r.bags, label: 'Sacs en stock', optional: true),
+                        ),
+                      ]),
+                  ]),
+                ),
+              ),
           ],
         ];
 
       case _Step.prix:
         final cats = saleCategoriesFor(_p!, _plan.options).where((c) => c != SaleCategory.autre).toList();
         for (final c in cats) {
-          _prices.putIfAbsent(c, () => TextEditingController(text: widget.data.config.priceFor(c)?.toString() ?? ''));
+          final variants = widget.data.config.variantsFor(_p!, c);
+          if (variants.isNotEmpty) {
+            _variantPrices.putIfAbsent(
+                c, () => {for (final e in variants.entries) e.key: TextEditingController(text: e.value?.toString() ?? '')});
+          } else {
+            _prices.putIfAbsent(c, () => TextEditingController(text: widget.data.config.priceFor(c)?.toString() ?? ''));
+          }
         }
         return [
           _title('Vos prix de vente', 'Ils seront proposés à chaque vente. Vous pourrez toujours vendre à un autre prix.'),
-          for (final c in cats) ...[
-            IntField(
-              key: ValueKey('prix-${c.name}'),
-              controller: _prices[c]!,
-              label: '${c.label} (par ${c.unit})',
-              suffix: 'FCFA',
-              optional: true,
-            ),
-            const SizedBox(height: 12),
-          ],
+          for (final c in cats)
+            if (_variantPrices[c] case final fields?)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    Text('${c.label} : un prix par type', style: const TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 10),
+                    for (final e in fields.entries) ...[
+                      Row(children: [
+                        Expanded(
+                          child: IntField(
+                              key: ValueKey('prix-type-${e.key}'),
+                              controller: e.value,
+                              label: e.key,
+                              suffix: 'FCFA',
+                              optional: true),
+                        ),
+                        IconButton(
+                          tooltip: 'Retirer ce type',
+                          icon: const Icon(Icons.close),
+                          onPressed: () => setState(() => fields.remove(e.key)),
+                        ),
+                      ]),
+                      const SizedBox(height: 10),
+                    ],
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        key: ValueKey('ajouter-type-${c.name}'),
+                        onPressed: () => _addVariant(c),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Ajouter un type'),
+                      ),
+                    ),
+                  ]),
+                ),
+              )
+            else ...[
+              IntField(
+                key: ValueKey('prix-${c.name}'),
+                controller: _prices[c]!,
+                label: c == SaleCategory.oeufsTable ? 'Prix d’une alvéole d’œufs' : '${c.label} (par ${c.unit})',
+                suffix: 'FCFA',
+                optional: true,
+              ),
+              if (c == SaleCategory.oeufsTable) ...[
+                const SizedBox(height: 8),
+                IntField(key: const ValueKey('oeufs-par-alveole'), controller: _eggsPerTray, label: 'Œufs dans une alvéole', min: 1, max: 100),
+              ],
+              const SizedBox(height: 12),
+            ],
         ];
 
       case _Step.utilisateurs:
@@ -440,19 +541,35 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               label: const Text('Ajouter cette personne'),
             ),
           ),
-          if (_plan.lot != null || _plan.feed != null || _plan.prices.isNotEmpty) ...[
+          if (_plan.lot != null || _plan.feeds.isNotEmpty || _plan.prices.isNotEmpty || _plan.variantPrices.isNotEmpty) ...[
             const SizedBox(height: 16),
             SectionCard(title: 'Ce qui sera créé', children: [
               if (_plan.lot != null)
                 InfoRow('Premier lot', '${_plan.breed} · ${formatInt(_plan.lot!.count)} sujets'),
-              if (_plan.feed != null)
-                InfoRow('Aliment', '${_plan.feed!.name}${_plan.feed!.bags > 0 ? ' · ${formatInt(_plan.feed!.bags)} sac(s)' : ''}'),
-              if (_plan.prices.isNotEmpty) InfoRow('Prix de vente', '${_plan.prices.length} prix'),
+              for (final f in _plan.feeds)
+                InfoRow(f.name, [
+                  if (f.pricePerBag > 0) '${formatFcfa(f.pricePerBag)} le sac',
+                  if (f.bags > 0) '${formatInt(f.bags)} sac(s) en stock',
+                ].join(' · ')),
+              for (final e in _plan.variantPrices.entries)
+                for (final v in e.value.entries)
+                  if (v.value != null) InfoRow(v.key, formatFcfa(v.value!)),
+              for (final e in _plan.prices.entries)
+                InfoRow(e.key == SaleCategory.oeufsTable ? 'Alvéole d’œufs' : e.key.label, formatFcfa(e.value)),
             ]),
           ],
         ];
     }
   }
+}
+
+/// Aliment d'un stade dans l'assistant.
+class _FeedRow {
+  _FeedRow(this.stage, {this.enabled = true});
+  final FeedStage stage;
+  bool enabled;
+  final price = TextEditingController();
+  final bags = TextEditingController();
 }
 
 class _ProductionTile extends StatelessWidget {
