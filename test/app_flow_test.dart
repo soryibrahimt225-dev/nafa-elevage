@@ -51,7 +51,7 @@ void main() {
     addTearDown(t.view.reset);
     final data = await t.runAsync(
         () => AppData.load(backend: backend, syncApi: server == null ? null : (_) => server));
-    await t.pumpWidget(NafaApp(data: data!, today: today));
+    await t.pumpWidget(NafaApp(data: data!, today: today, showStartScreen: false));
     await t.pumpAndSettle();
   }
 
@@ -856,6 +856,8 @@ void main() {
     final data = await t.runAsync(AppData.load);
     await t.pumpWidget(NafaRoot(initial: data!, backend: UnsupportedReminderBackend(), today: today));
     await t.pumpAndSettle();
+    await tapKey(t, 'commencer-travail'); // page de démarrage
+    await t.pumpAndSettle();
     await openMenu(t, 'parametres');
     await tapKey(t, 'recommencer');
     await t.pumpAndSettle();
@@ -864,5 +866,45 @@ void main() {
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
     await t.pumpAndSettle();
     expect(find.text('Quelle production voulez-vous gérer ?'), findsOneWidget);
+  });
+
+  testWidgets('Page de démarrage à l’ouverture, puis « Commencer le travail »', (t) async {
+    await freshSettings({
+      'nafa.production': 'pondeuses',
+      'nafa.farm.v1': '{"name":"Ferme de Kati","location":"Kati","users":[{"name":"Sory","role":"proprietaire"}]}',
+      'nafa.lots.v1': '{"animal":[{"id":"1","code":"PON-26-001","production":"pondeuses","breed":"ISA Brown",'
+          '"startDate":"2026-06-01","initialCount":400,"movements":[]}],"incubation":[]}',
+    });
+    t.view.physicalSize = const Size(360, 740);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final data = await t.runAsync(AppData.load);
+    await t.pumpWidget(NafaApp(data: data!, today: today));
+    await t.pumpAndSettle();
+    expect(find.text('Bonjour Sory'), findsOneWidget);
+    expect(find.text('Ferme de Kati · Kati'), findsOneWidget);
+    expect(find.textContaining('1 lot(s) en cours · 400 sujets'), findsOneWidget);
+    expect(find.textContaining('Ramassage des œufs à saisir : 1 lot(s)'), findsOneWidget);
+    expect(find.byType(DrawerButton), findsNothing);
+    await tapKey(t, 'commencer-travail');
+    await t.pumpAndSettle();
+    expect(find.byType(DrawerButton), findsOneWidget); // tableau de bord
+    expect(find.byKey(const ValueKey('saisir')), findsOneWidget);
+  });
+
+  testWidgets('Juste après l’assistant : tableau de bord direct', (t) async {
+    await freshSettings();
+    t.view.physicalSize = const Size(360, 740);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final data = await t.runAsync(AppData.load);
+    await t.pumpWidget(NafaApp(data: data!, today: today));
+    await t.pumpAndSettle();
+    await tapKey(t, 'production-chair');
+    await tapKey(t, 'continuer');
+    await t.pumpAndSettle();
+    await skipToEnd(t);
+    expect(find.byType(DrawerButton), findsOneWidget);
+    expect(find.byKey(const ValueKey('commencer-travail')), findsNothing);
   });
 }

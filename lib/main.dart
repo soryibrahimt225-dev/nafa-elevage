@@ -8,6 +8,7 @@ import 'ui/config_scope.dart';
 import 'ui/reminder_scope.dart';
 import 'ui/home_shell.dart';
 import 'ui/onboarding_screen.dart';
+import 'ui/start_screen.dart';
 import 'ui/theme.dart';
 
 Future<void> main() async {
@@ -48,8 +49,11 @@ class _NafaRootState extends State<NafaRoot> {
 }
 
 class NafaApp extends StatelessWidget {
-  const NafaApp({super.key, required this.data, this.today, this.onReload});
+  const NafaApp({super.key, required this.data, this.today, this.onReload, this.showStartScreen = true});
   final AppData data;
+
+  /// Page de démarrage à l'ouverture (désactivée dans certains tests).
+  final bool showStartScreen;
 
   /// Recharge toutes les données (après une restauration).
   final Future<void> Function()? onReload;
@@ -73,15 +77,47 @@ class NafaApp extends StatelessWidget {
       locale: const Locale('fr'),
       supportedLocales: const [Locale('fr')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      home: ListenableBuilder(
-        listenable: data.settings,
-        builder: (context, _) => data.settings.isConfigured
-            ? HomeShell(data: data, today: today)
-            : OnboardingScreen(data: data, today: today),
-      ),
+      home: _Gate(data: data, today: today, showStartScreen: showStartScreen),
       ),
       ),
       ),
     );
   }
+}
+
+/// Choix de l'écran : assistant (première fois), page de démarrage (à chaque
+/// ouverture), puis tableau de bord. Juste après l'assistant, on va
+/// directement au tableau de bord.
+class _Gate extends StatefulWidget {
+  const _Gate({required this.data, required this.today, required this.showStartScreen});
+  final AppData data;
+  final DateTime? today;
+  final bool showStartScreen;
+
+  @override
+  State<_Gate> createState() => _GateState();
+}
+
+class _GateState extends State<_Gate> {
+  late bool _started = !widget.showStartScreen;
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: widget.data.settings,
+        builder: (context, _) {
+          final d = widget.data;
+          if (!d.settings.isConfigured) {
+            _started = true; // après l'assistant : tableau de bord direct
+            return OnboardingScreen(data: d, today: widget.today);
+          }
+          if (!_started) {
+            return StartScreen(
+              data: d,
+              today: widget.today ?? DateTime.now(),
+              onStart: () => setState(() => _started = true),
+            );
+          }
+          return HomeShell(data: d, today: widget.today);
+        },
+      );
 }
