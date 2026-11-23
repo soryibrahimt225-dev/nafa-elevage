@@ -19,3 +19,4 @@ Chaque décision indique sa source : **client** (validée par le client), ou **p
 | 23/11/2026 | Devise | Franc CFA (FCFA) uniquement, affiché dans l'assistant | proposition |
 | 23/11/2026 | Utilisateurs et rôles | Liste des personnes et de leur rôle enregistrée dès maintenant ; droits appliqués avec la synchronisation | proposition |
 | 23/11/2026 | Bouton principal | Le bouton s'appelle **« Saisir »** (et non « Saisir aujourd'hui », jugé trop générique). Il se trouve sur le tableau de bord et propose les saisies utiles à la production choisie. | client |
+| 23/11/2026 | Indice de consommation | IC = aliment distribué entre la première et la dernière pesée ÷ (gain de poids moyen × sujets présents à la dernière pesée). Pour compter depuis le démarrage, une pesée est saisie le jour du démarrage. Aucune valeur de référence de souche n'est affichée. | proposition |

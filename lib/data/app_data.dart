@@ -6,6 +6,7 @@ import 'health_store.dart';
 import 'lot_store.dart';
 import 'reminder_service.dart';
 import 'settings_store.dart';
+import 'weighing_store.dart';
 
 /// Toutes les données de l'application, chargées au démarrage.
 class AppData {
@@ -18,6 +19,7 @@ class AppData {
     required this.reminders,
     required this.eggs,
     required this.feed,
+    required this.weights,
   });
 
   final FarmSettings settings;
@@ -28,6 +30,7 @@ class AppData {
   final ReminderService reminders;
   final EggStore eggs;
   final FeedStore feed;
+  final WeighingStore weights;
 
   /// [backend] : accès à l'agenda et aux notifications du téléphone
   /// (remplacé sur le web et dans les tests).
@@ -40,5 +43,6 @@ class AppData {
         reminders: await ReminderService.load(backend ?? UnsupportedReminderBackend()),
         eggs: await EggStore.load(),
         feed: await FeedStore.load(),
+        weights: await WeighingStore.load(),
       );
 }

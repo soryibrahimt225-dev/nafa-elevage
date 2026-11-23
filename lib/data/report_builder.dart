@@ -5,6 +5,7 @@ import '../domain/health.dart';
 import '../domain/lots.dart';
 import '../domain/production.dart';
 import '../domain/report.dart';
+import '../domain/weighing.dart';
 import 'app_data.dart';
 
 /// Rapports du dossier de spécification (section 7).
@@ -199,6 +200,17 @@ class ReportBuilder {
             ('Œufs fertiles mis de côté', RV.integer(eggs.fertile)),
             ('Œufs de table', RV.integer(eggs.table)),
           ]),
+        if (Growth(l, data.weights.forLot(code), data.feed.moves) case final g when g.last != null)
+          ReportSection('Pesées et croissance', rows: [
+            ('Dernier poids moyen', RV.text('${formatWeight(g.last!.averageGrams)} le ${formatDate(g.last!.date)}')),
+            ('Nombre de pesées', RV.integer(g.weighings.length)),
+            if (g.hasTwo) ...[
+              ('Gain moyen par sujet', RV.text('${formatWeight(g.gainPerSubject!)} en ${g.days} jours')),
+              if (g.dailyGain != null) ('Gain moyen quotidien', RV.text('${g.dailyGain!.round()} g par sujet et par jour')),
+              ('Aliment entre la première et la dernière pesée', RV.kg(g.feedGrams)),
+              ('Indice de consommation', RV.text(formatFcr(g.fcr))),
+            ],
+          ], note: 'Indice de consommation = aliment distribué entre les pesées ÷ (gain moyen × sujets présents).'),
         ReportSection('Santé et vaccination', rows: [
           ('Soins réalisés', RV.integer(care.where((r) => r.statusAt(today) == HealthStatus.realise).length)),
           ('Soins en retard', RV.integer(care.where((r) => r.statusAt(today) == HealthStatus.enRetard).length)),
@@ -231,6 +243,15 @@ class ReportBuilder {
       final grams = e.value.fold(0, (n, l) => n + data.feed.forLot(l.code).grams);
       final sales = e.value.fold(0, (n, l) => n + lotResult(l.code).$1);
       final result = e.value.fold(0, (n, l) => n + lotResult(l.code).$4);
+      // Indice de consommation de la race : somme des aliments ÷ somme des gains.
+      var feedG = 0, gainG = 0;
+      for (final l in e.value) {
+        final g = Growth(l, data.weights.forLot(l.code), data.feed.moves);
+        if (g.fcr != null) {
+          feedG += g.feedGrams;
+          gainG += g.totalGain!;
+        }
+      }
       rows.add([
         RV.text(e.key),
         RV.integer(e.value.length),
@@ -240,6 +261,7 @@ class ReportBuilder {
         RV.kg(grams),
         RV.money(sales),
         RV.money(result),
+        RV.text(gainG == 0 ? '—' : formatFcr(feedG / gainG)),
       ]);
     }
     return Report(
@@ -256,7 +278,8 @@ class ReportBuilder {
               'Mortalité (%)',
               'Aliment (kg)',
               'Ventes (FCFA)',
-              'Résultat (FCFA)'
+              'Résultat (FCFA)',
+              'Indice de consommation'
             ], rows: rows),
             note: 'Résultat par lot = ventes − dépenses rattachées − aliment distribué.'),
       ],

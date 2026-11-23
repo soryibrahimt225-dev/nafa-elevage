@@ -142,7 +142,7 @@ void main() {
 
     await t.tap(find.byKey(const ValueKey('lot-CHA-26-001')));
     await t.pumpAndSettle();
-    await t.tap(find.byKey(const ValueKey('saisir-sortie')));
+    await tapKey(t, 'saisir-sortie');
     await t.pumpAndSettle();
     await t.enterText(find.byKey(const ValueKey('nombre-sortie')), '12');
     await t.tap(find.byKey(const ValueKey('valider-sortie')));
@@ -274,6 +274,7 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('Aujourd’hui'), findsOneWidget);
     await openMenu(t, 'tableauDeBord');
+    await t.scrollUntilVisible(find.textContaining('AME-26-001 · Vaccin A'), 150, scrollable: find.byType(Scrollable).first);
     expect(find.textContaining('AME-26-001 · Vaccin A'), findsOneWidget);
   });
 
@@ -718,5 +719,36 @@ void main() {
     await t.tap(find.byKey(const ValueKey('valider-eclosion')));
     await t.pumpAndSettle();
     expect(find.text('75,0\u00A0%'), findsOneWidget); // taux d'éclosion au tableau de bord
+  });
+
+  testWidgets('Pesées : saisie depuis « Saisir », indice de consommation sur la fiche et le tableau de bord', (t) async {
+    final s = await freshSettings({
+      'nafa.production': 'chair',
+      'nafa.lots.v1': '{"animal":[{"id":"1","code":"CHA-26-001","production":"chair","breed":"Cobb 500",'
+          '"startDate":"2026-10-21","initialCount":500,"movements":[]}],"incubation":[]}',
+      'nafa.weighings.v1': '[{"id":"w0","lotCode":"CHA-26-001","date":"2026-10-21","averageGrams":40}]',
+      'nafa.feed.v1': '{"items":[{"id":"a","name":"Aliment chair","stage":"croissance","kgPerBag":50}],'
+          '"moves":[{"id":"1","itemId":"a","date":"2026-10-21","type":"achat","grams":2000000,"cost":1000000},'
+          '{"id":"2","itemId":"a","date":"2026-11-10","type":"distribution","grams":1400000,"lotCode":"CHA-26-001"}]}',
+    });
+    await pumpPhone(t, s);
+    expect(find.text('40\u00A0g'), findsOneWidget); // poids moyen au tableau de bord
+    await t.tap(find.byKey(const ValueKey('saisir')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('saisir-pesee')));
+    await t.pumpAndSettle();
+    await t.enterText(find.descendant(of: find.byKey(const ValueKey('poids-moyen')), matching: find.byType(EditableText)), '1640');
+    await t.tap(find.byKey(const ValueKey('valider-pesee')));
+    await t.pumpAndSettle();
+    // 1 400 kg ÷ (1 600 g × 500) = 1,75
+    expect(find.text('1,64\u00A0kg'), findsOneWidget);
+    expect(find.text('1,75'), findsOneWidget);
+
+    await openMenu(t, 'lots');
+    await t.tap(find.byKey(const ValueKey('lot-CHA-26-001')));
+    await t.pumpAndSettle();
+    await t.scrollUntilVisible(find.text('Indice de consommation'), 150, scrollable: find.byType(Scrollable).first);
+    expect(find.text('Indice de consommation'), findsOneWidget);
+    expect(find.text('50 g par sujet et par jour'), findsOneWidget); // 1 600 g en 32 jours
   });
 }

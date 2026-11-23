@@ -12,9 +12,11 @@ import '../domain/format.dart';
 import '../domain/health.dart';
 import '../domain/lots.dart';
 import '../domain/production.dart';
+import '../domain/weighing.dart';
 import 'app_scope.dart';
 import 'incubation_lots_screen.dart';
 import 'theme.dart';
+import 'weighing_ui.dart';
 import 'widgets.dart';
 
 /// Tableau de bord dynamique : indicateurs de la production choisie,
@@ -48,7 +50,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([store, finance, health, eggs, feed]),
+      listenable: Listenable.merge([store, finance, health, eggs, feed, ?AppScope.maybeOf(context)?.weights]),
       builder: (context, _) {
         final total = finance.accounting().global;
         final month = finance.accounting(Period.month(today)).global;
@@ -71,6 +73,27 @@ class DashboardScreen extends StatelessWidget {
             ('Lots en cours', formatInt(active.length), '${formatInt(lots.length)} au total'),
             ('Mortalité', initial == 0 ? '—' : formatPercent(dead / initial), '${formatInt(dead)} sujets morts'),
           ]);
+          final data = AppScope.maybeOf(context);
+          if (tracksWeight(production) && data != null) {
+            // Poids moyen (pondéré par l'effectif) et indice de consommation
+            // global des lots en cours qui ont des pesées.
+            var weight = 0, birds = 0, feedG = 0, gainG = 0;
+            for (final l in active) {
+              final g = Growth(l, data.weights.forLot(l.code), feed.moves);
+              if (g.last != null) {
+                weight += g.last!.averageGrams * l.current;
+                birds += l.current;
+              }
+              if (g.fcr != null) {
+                feedG += g.feedGrams;
+                gainG += g.totalGain!;
+              }
+            }
+            kpis.addAll([
+              ('Poids moyen', birds == 0 ? '—' : formatWeight((weight / birds).round()), birds == 0 ? 'aucune pesée' : null),
+              ('Indice de consommation', gainG == 0 ? '—' : formatFcr(feedG / gainG), 'kg d’aliment par kg gagné'),
+            ]);
+          }
           if (production == ProductionType.pondeuses) {
             final codes = {for (final l in active) l.code};
             final collected = eggs.between(codes, today, today).fold(0, (n, r) => n + r.collected);

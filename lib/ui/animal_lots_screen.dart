@@ -4,8 +4,10 @@ import '../data/lot_store.dart';
 import '../domain/format.dart';
 import '../domain/lots.dart';
 import '../domain/production.dart';
+import 'app_scope.dart';
 import 'config_scope.dart';
 import 'theme.dart';
+import 'weighing_ui.dart';
 import 'widgets.dart';
 
 
@@ -250,6 +252,10 @@ class AnimalLotDetailScreen extends StatelessWidget {
               if (lot.objective != null) InfoRow('Objectif', lot.objective!.label),
               if (lot.notes.isNotEmpty) InfoRow('Observations', lot.notes),
             ]),
+            if (tracksWeight(lot.production) && AppScope.maybeOf(context) != null) ...[
+              const SizedBox(height: 12),
+              WeighingCard(data: AppScope.maybeOf(context)!, lot: lot, today: today),
+            ],
             if (lot.production == ProductionType.ameliorees && lot.objective != LotObjective.engraissement) ...[
               const SizedBox(height: 12),
               _CycleCard(lot: lot, today: today),

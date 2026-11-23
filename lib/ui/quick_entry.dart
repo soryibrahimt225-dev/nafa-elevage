@@ -14,6 +14,7 @@ import 'health_screen.dart';
 import 'incubation_lots_screen.dart';
 import 'laying_screen.dart';
 import 'theme.dart';
+import 'weighing_ui.dart';
 import 'widgets.dart';
 
 /// Bouton principal « Saisir » : un seul point d'entrée pour les saisies
@@ -109,6 +110,13 @@ List<_Action> _actionsFor(AppData data, DateTime today) {
   final laying = p == ProductionType.pondeuses || p == ProductionType.ameliorees;
   return [
     _mortality(data, today, p),
+    if (tracksWeight(p))
+      _Action('pesee', Icons.scale_outlined, 'Une pesée', 'Poids moyen de quelques sujets', (c) async {
+        final lots = data.lots.animalLots(p).where((l) => l.status == LotStatus.enCours).toList();
+        final lot = await _pick(c, 'Quel lot ?', lots, (l) => '${l.code} · ${l.breed} · ${l.ageAt(today)} jours',
+            empty: 'Aucun lot en cours.');
+        if (lot != null && c.mounted) await showWeighingDialog(c, data, lot, today);
+      }),
     if (laying)
       _Action('ponte', Icons.egg_outlined, 'Les œufs ramassés', 'Ramassés, cassés, fertiles', (c) async {
         final screen = LayingScreen(data: data, today: today);
