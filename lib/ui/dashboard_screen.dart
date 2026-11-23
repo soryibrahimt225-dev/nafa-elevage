@@ -12,6 +12,7 @@ import '../domain/format.dart';
 import '../domain/health.dart';
 import '../domain/lots.dart';
 import '../domain/production.dart';
+import 'app_scope.dart';
 import 'incubation_lots_screen.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -200,7 +201,11 @@ class DashboardScreen extends StatelessWidget {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text(formatLongDate(today).toUpperCase(),
+            Text(
+                [
+                  if (AppScope.maybeOf(context) case final d?) d.settings.farm.displayName,
+                  formatLongDate(today),
+                ].join(' · ').toUpperCase(),
                 style: const TextStyle(fontSize: 12, color: NafaColors.textMuted, letterSpacing: 1)),
             const SizedBox(height: 4),
             Text(production.label, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),

@@ -22,6 +22,16 @@ Future<void> enterKey(WidgetTester t, String key, String text) async {
   await t.pump();
 }
 
+/// Passe les étapes restantes de l'assistant puis termine.
+Future<void> skipToEnd(WidgetTester t) async {
+  while (find.byKey(const ValueKey('terminer')).evaluate().isEmpty) {
+    await tapKey(t, 'passer');
+    await t.pumpAndSettle();
+  }
+  await tapKey(t, 'passer'); // la dernière étape aussi
+  await t.pumpAndSettle();
+}
+
 Future<void> tapKey(WidgetTester t, String key) async {
   final f = find.byKey(ValueKey(key));
   await t.scrollUntilVisible(f, 120, scrollable: find.byType(Scrollable).first);
@@ -53,6 +63,7 @@ void main() {
     expect(find.byType(CheckboxListTile), findsNothing);
     await tapKey(t, 'continuer');
     await t.pumpAndSettle();
+    await skipToEnd(t);
 
     expect(find.byType(DrawerButton), findsOneWidget);
     await t.tap(find.byType(DrawerButton));
@@ -69,6 +80,7 @@ void main() {
     await tapKey(t, 'option-couvaisonConversion');
     await tapKey(t, 'continuer');
     await t.pumpAndSettle();
+    await skipToEnd(t);
 
     await t.tap(find.byType(DrawerButton));
     await t.pumpAndSettle();
@@ -559,5 +571,78 @@ void main() {
     expect(find.text('Rapport du lot CHA-26-001'), findsOneWidget);
     expect(find.byKey(const ValueKey('export-pdf')), findsOneWidget);
     expect(find.byKey(const ValueKey('export-excel')), findsOneWidget);
+  });
+
+  testWidgets('Assistant complet : ferme, race, premier lot, aliment, prix, utilisateurs', (t) async {
+    final s = await freshSettings();
+    await pumpPhone(t, s);
+    await tapKey(t, 'production-ameliorees');
+    await tapKey(t, 'continuer');
+    await t.pumpAndSettle();
+    expect(find.text('ÉTAPE 2 SUR 7'), findsOneWidget);
+    await enterKey(t, 'nom-ferme', 'Ferme de Kati');
+    await enterKey(t, 'lieu-ferme', 'Kati');
+    await tapKey(t, 'continuer');
+    await t.pumpAndSettle();
+    await t.tap(find.text('Goliath'));
+    await t.pump();
+    await tapKey(t, 'continuer');
+    await t.pumpAndSettle();
+    expect(find.text('Créer maintenant un lot de Goliath'), findsOneWidget);
+    await t.tap(find.text('Conservation pour la ponte'));
+    await t.pump();
+    await enterKey(t, 'effectif-depart', '120');
+    await tapKey(t, 'continuer');
+    await t.pumpAndSettle();
+    await enterKey(t, 'sacs-stock', '4');
+    await enterKey(t, 'prix-sac', '24000');
+    await tapKey(t, 'continuer');
+    await t.pumpAndSettle();
+    await enterKey(t, 'prix-sujets', '6000');
+    await tapKey(t, 'continuer');
+    await t.pumpAndSettle();
+    await enterKey(t, 'nom-utilisateur', 'Sory');
+    await tapKey(t, 'ajouter-utilisateur');
+    await t.pumpAndSettle();
+    expect(find.textContaining('Propriétaire'), findsWidgets);
+    expect(find.textContaining('Goliath · 120 sujets'), findsOneWidget); // récapitulatif
+    await tapKey(t, 'terminer');
+    await t.pumpAndSettle();
+
+    // Tableau de bord : nom de la ferme, premier lot
+    expect(find.textContaining('FERME DE KATI'), findsOneWidget);
+    expect(find.text('120 sujets'), findsWidgets);
+    await openMenu(t, 'lots');
+    await t.tap(find.byKey(const ValueKey('lot-AME-26-001')));
+    await t.pumpAndSettle();
+    expect(find.text('Conservation pour la ponte'), findsOneWidget);
+    await t.tap(find.byType(BackButton));
+    await t.pumpAndSettle();
+    await openMenu(t, 'alimentation');
+    expect(find.textContaining('200\u00A0kg · 4,0 sac(s)'), findsOneWidget);
+    expect(find.text('480\u00A0FCFA par kg'), findsOneWidget);
+    await openMenu(t, 'parametres');
+    await t.scrollUntilVisible(find.text('6\u00A0000\u00A0FCFA par sujet'), 150, scrollable: find.byType(Scrollable).first);
+    expect(find.text('6\u00A0000\u00A0FCFA par sujet'), findsOneWidget);
+  });
+
+  testWidgets('Assistant couveuse : 5 étapes, espèce principale proposée en premier', (t) async {
+    final s = await freshSettings();
+    await pumpPhone(t, s);
+    await tapKey(t, 'production-couveuse');
+    await tapKey(t, 'continuer');
+    await t.pumpAndSettle();
+    expect(find.text('ÉTAPE 2 SUR 5'), findsOneWidget);
+    await tapKey(t, 'passer');
+    await t.pumpAndSettle();
+    await tapKey(t, 'espece-pintade');
+    await tapKey(t, 'continuer');
+    await t.pumpAndSettle();
+    await skipToEnd(t);
+    expect(find.textContaining('MA FERME'), findsOneWidget);
+    await openMenu(t, 'lotsOeufs');
+    await t.tap(find.byKey(const ValueKey('nouveau-lot-oeufs')));
+    await t.pumpAndSettle();
+    expect(find.text('Pintade · 28 jours'), findsOneWidget);
   });
 }

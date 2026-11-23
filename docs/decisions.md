@@ -15,3 +15,6 @@ Chaque décision indique sa source : **client** (validée par le client), ou **p
 | 22/11/2026 | Dépenses générales | Gardées à part, jamais réparties automatiquement entre les lots | dossier de recherche |
 | 23/11/2026 | Rappels | Agenda natif si autorisé, sinon notification locale ; heure approximative (pas d'autorisation « alarmes exactes ») | master prompt + proposition |
 | 23/11/2026 | Vaccination des poussins gardés | Santé et vaccination ajoutées pour les **bandes de poussins gardés** de la couveuse, accessibles depuis « Poussins gardés » et le tableau de bord. Les **lots d'œufs** et le menu de la couveuse restent sans vaccination. | client |
+| 23/11/2026 | Ordre de l'assistant | La production est demandée en premier (master prompt), puis les étapes du dossier : ferme, race, premier lot, aliment, prix, utilisateurs. Chaque étape après la production peut être passée. | master prompt + dossier |
+| 23/11/2026 | Devise | Franc CFA (FCFA) uniquement, affiché dans l'assistant | proposition |
+| 23/11/2026 | Utilisateurs et rôles | Liste des personnes et de leur rôle enregistrée dès maintenant ; droits appliqués avec la synchronisation | proposition |

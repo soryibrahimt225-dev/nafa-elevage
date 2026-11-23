@@ -50,7 +50,9 @@ class ReportBuilder {
 
   bool _inPeriod(DateTime d, DateTime? month) => month == null || (d.year == month.year && d.month == month.month);
 
-  String _subtitle(DateTime? month) => '${_p.label} · ${periodLabel(month)} · établi le ${formatDate(today)}';
+  String get _farm => data.settings.farm.displayName;
+
+  String _subtitle(DateTime? month) => '$_farm · ${_p.label} · ${periodLabel(month)} · établi le ${formatDate(today)}';
 
   Report build(ReportKind kind, {DateTime? month, String? lotCode}) => switch (kind) {
         ReportKind.financier => financial(month: month),
@@ -167,7 +169,7 @@ class ReportBuilder {
     final eggs = EggSummary(data.eggs.forLots({code}));
     return Report(
       title: 'Rapport du lot $code',
-      subtitle: '${l.breed} · ${_p.label} · établi le ${formatDate(today)}',
+      subtitle: '$_farm · ${l.breed} · ${_p.label} · établi le ${formatDate(today)}',
       generatedAt: today,
       sections: [
         ReportSection('Effectif', rows: [

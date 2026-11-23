@@ -33,6 +33,14 @@ class ConfigStore extends ChangeNotifier {
     await _save();
   }
 
+  /// Place une espèce en tête de liste (proposée par défaut).
+  Future<void> setDefaultSpecies(String id) async {
+    final i = config.species.indexWhere((s) => s.id == id);
+    if (i <= 0) return;
+    config.species.insert(0, config.species.removeAt(i));
+    await _save();
+  }
+
   Future<void> addBreed(ProductionType p, String breed) async {
     config.addBreed(p, breed);
     await _save();

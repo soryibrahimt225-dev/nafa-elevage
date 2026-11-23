@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../domain/farm.dart';
 import '../domain/production.dart';
 
 /// Configuration de l'exploitation : production choisie et options activées.
@@ -13,14 +16,26 @@ class FarmSettings extends ChangeNotifier {
         for (final o in OptionalFeature.values)
           if (o.name == name) o,
     };
+    final raw = _prefs.getString(_kFarm);
+    _farm = raw == null ? FarmProfile() : FarmProfile.fromJson((jsonDecode(raw) as Map).cast());
   }
 
   static const _kProduction = 'nafa.production';
   static const _kOptions = 'nafa.options';
+  static const _kFarm = 'nafa.farm.v1';
 
   final SharedPreferences _prefs;
   ProductionType? _production;
   Set<OptionalFeature> _options = {};
+  late FarmProfile _farm;
+
+  FarmProfile get farm => _farm;
+
+  Future<void> setFarm(FarmProfile farm) async {
+    _farm = farm;
+    await _prefs.setString(_kFarm, jsonEncode(farm.toJson()));
+    notifyListeners();
+  }
 
   static Future<FarmSettings> load() async =>
       FarmSettings(await SharedPreferences.getInstance());

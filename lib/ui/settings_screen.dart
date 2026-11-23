@@ -5,6 +5,7 @@ import '../data/config_store.dart';
 import '../data/lot_store.dart';
 import '../data/settings_store.dart';
 import '../domain/config.dart';
+import '../domain/farm.dart';
 import '../domain/finance.dart';
 import '../domain/format.dart';
 import '../domain/incubation.dart';
@@ -34,6 +35,8 @@ class SettingsScreen extends StatelessWidget {
       children: [
         const Text('Paramètres', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
         const SizedBox(height: 16),
+        _FarmSection(settings: settings),
+        const SizedBox(height: 12),
         SectionCard(title: 'Production', children: [
           InfoRow('Production gérée', p.label),
           for (final o in optionsFor(p))
@@ -74,6 +77,110 @@ class SettingsScreen extends StatelessWidget {
         _PricesSection(config: config, categories: saleCategoriesFor(p, settings.options)),
       ],
     );
+  }
+}
+
+class _FarmSection extends StatelessWidget {
+  const _FarmSection({required this.settings});
+  final FarmSettings settings;
+
+  @override
+  Widget build(BuildContext context) {
+    final f = settings.farm;
+    return SectionCard(title: 'Ferme et utilisateurs', children: [
+      ListTile(
+        key: const ValueKey('modifier-ferme'),
+        contentPadding: EdgeInsets.zero,
+        title: Text(f.displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(f.location.isEmpty ? 'Lieu non précisé · FCFA' : '${f.location} · FCFA'),
+        trailing: const Icon(Icons.edit_outlined),
+        onTap: () => _editFarm(context),
+      ),
+      for (final (i, u) in f.users.indexed)
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.person_outline),
+          title: Text(u.name),
+          subtitle: Text('${u.role.label} · ${u.role.rights}'),
+          trailing: IconButton(
+            tooltip: 'Retirer',
+            icon: const Icon(Icons.close),
+            onPressed: () => settings.setFarm(
+                FarmProfile(name: f.name, location: f.location, users: [...f.users]..removeAt(i))),
+          ),
+        ),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          key: const ValueKey('ajouter-personne'),
+          onPressed: () => _addUser(context),
+          icon: const Icon(Icons.person_add_alt),
+          label: const Text('Ajouter une personne'),
+        ),
+      ),
+      const Text('Les droits d’accès par rôle seront appliqués avec la synchronisation entre téléphones.',
+          style: TextStyle(color: NafaColors.textMuted, fontSize: 12)),
+    ]);
+  }
+
+  Future<void> _editFarm(BuildContext context) async {
+    final f = settings.farm;
+    final name = TextEditingController(text: f.name);
+    final place = TextEditingController(text: f.location);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: const Text('Votre ferme'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: name, decoration: const InputDecoration(labelText: 'Nom', border: OutlineInputBorder())),
+          const SizedBox(height: 12),
+          TextField(controller: place, decoration: const InputDecoration(labelText: 'Ville ou village', border: OutlineInputBorder())),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Annuler')),
+          FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Enregistrer')),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await settings.setFarm(FarmProfile(name: name.text.trim(), location: place.text.trim(), users: f.users));
+    }
+  }
+
+  Future<void> _addUser(BuildContext context) async {
+    final name = TextEditingController();
+    var role = UserRole.employe;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => StatefulBuilder(
+        builder: (d, setState) => AlertDialog(
+          title: const Text('Ajouter une personne'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(controller: name, decoration: const InputDecoration(labelText: 'Nom', border: OutlineInputBorder())),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<UserRole>(
+              initialValue: role,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Rôle', border: OutlineInputBorder()),
+              items: [for (final r in UserRole.values) DropdownMenuItem(value: r, child: Text(r.label))],
+              onChanged: (v) => setState(() => role = v ?? role),
+            ),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Annuler')),
+            FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Ajouter')),
+          ],
+        ),
+      ),
+    );
+    if (ok != true) return;
+    try {
+      final f = settings.farm;
+      await settings.setFarm(
+          FarmProfile(name: f.name, location: f.location, users: [...f.users, FarmUser(name.text.trim(), role)]));
+    } catch (e) {
+      if (context.mounted) showError(context, e);
+    }
   }
 }
 

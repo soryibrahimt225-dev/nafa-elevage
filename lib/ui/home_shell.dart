@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../data/app_data.dart';
 import '../domain/production.dart';
 import 'animal_lots_screen.dart';
+import 'app_scope.dart';
 import 'chick_bands_screen.dart';
 import 'dashboard_screen.dart';
 import 'feed_screen.dart';
@@ -106,6 +107,14 @@ class _ModuleMenu extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (AppScope.maybeOf(context) case final d?) ...[
+                Text(d.settings.farm.displayName,
+                    key: const ValueKey('nom-ferme-menu'),
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                if (d.settings.farm.location.isNotEmpty)
+                  Text(d.settings.farm.location, style: const TextStyle(color: NafaColors.textMuted, fontSize: 13)),
+                const SizedBox(height: 8),
+              ],
               const Text('PRODUCTION', style: TextStyle(fontSize: 11, color: NafaColors.textMuted, letterSpacing: 1)),
               const SizedBox(height: 2),
               Text(production.label,

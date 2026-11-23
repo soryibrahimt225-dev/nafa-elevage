@@ -40,7 +40,7 @@ class NafaApp extends StatelessWidget {
         listenable: data.settings,
         builder: (context, _) => data.settings.isConfigured
             ? HomeShell(data: data, today: today)
-            : OnboardingScreen(settings: data.settings),
+            : OnboardingScreen(data: data, today: today),
       ),
       ),
       ),
