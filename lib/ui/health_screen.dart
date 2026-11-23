@@ -89,7 +89,7 @@ class HealthScreen extends StatelessWidget {
                     child: InkWell(
                       key: ValueKey('soin-${r.id}'),
                       borderRadius: BorderRadius.circular(10),
-                      onTap: () => _detail(context, r),
+                      onTap: () => detail(context, r),
                       child: Padding(
                         padding: const EdgeInsets.all(14),
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -120,7 +120,7 @@ class HealthScreen extends StatelessWidget {
         },
       );
 
-  Future<void> _detail(BuildContext context, HealthRecord r) => showModalBottomSheet<void>(
+  Future<void> detail(BuildContext context, HealthRecord r) => showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
         builder: (sheet) => SafeArea(

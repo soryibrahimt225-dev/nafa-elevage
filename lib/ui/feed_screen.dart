@@ -236,7 +236,7 @@ class FeedScreen extends StatelessWidget {
 
   /// Distribution à un lot (ou perte), avec calcul de la ration :
   /// effectif × grammes par sujet.
-  Future<void> _distribute(BuildContext context, FeedItem item, List<AnimalLot> lots, {required bool loss}) async {
+  Future<void> distribute(BuildContext context, FeedItem item, List<AnimalLot> lots, {required bool loss}) async {
     final kg = TextEditingController();
     final perSubject = TextEditingController();
     final note = TextEditingController();
@@ -383,12 +383,12 @@ class _StockCard extends StatelessWidget {
             key: ValueKey('distribuer-${i.name}'),
             onPressed: stock.remainingGrams <= 0 || lots.isEmpty
                 ? null
-                : () => screen._distribute(context, i, lots, loss: false),
+                : () => screen.distribute(context, i, lots, loss: false),
             icon: const Icon(Icons.grass_outlined),
             label: const Text('Distribuer'),
           ),
           TextButton(
-            onPressed: stock.remainingGrams <= 0 ? null : () => screen._distribute(context, i, lots, loss: true),
+            onPressed: stock.remainingGrams <= 0 ? null : () => screen.distribute(context, i, lots, loss: true),
             child: const Text('Perte'),
           ),
           TextButton(onPressed: () => screen._itemDialog(context, i), child: const Text('Modifier')),

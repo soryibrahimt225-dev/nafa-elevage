@@ -20,13 +20,15 @@ Nafa Élevage est une application web et mobile (Flutter) de gestion d'élevage,
 | 9 | Paramètres : espèces de couvaison (durée, jour de descente), races, prix de référence, cycle des races améliorées | ✅ livré |
 | 10 | Rapports : mensuel, financier, du lot, par race, de ponte, de couvaison ; aperçu à l'écran, export PDF et Excel | ✅ livré |
 | 11 | Assistant de démarrage complet : production, ferme (nom, lieu, FCFA), race ou espèce, premier lot et objectif, aliment et stock de départ, prix de vente, utilisateurs et rôles | ✅ livré |
-| 11 bis | Bouton « Saisir aujourd'hui », pesées et indice de consommation | à venir |
+| 11 bis | Bouton principal « Saisir » sur le tableau de bord : mortalité, œufs, aliment, soin réalisé, vente, dépense ; couveuse : œufs en couveuse, éclosion, mortalité des poussins gardés | ✅ livré |
+| 11 ter | Pesées et indice de consommation | à venir |
 | 12 | Sauvegarde, travail hors connexion et synchronisation, utilisateurs et rôles | à venir |
 
 ## Règles appliquées
 
 - Seuls les modules utiles à la production choisie sont affichés. Le menu de la couveuse n'affiche pas la vaccination : seules les bandes de poussins gardés ont un suivi santé (décision du client, voir [`docs/decisions.md`](docs/decisions.md)).
 - On écrit « sujet » ou « sujets », jamais « oiseau ».
+- Un seul bouton principal, « Saisir », sur le tableau de bord.
 - Les montants sont toujours écrits en entier : `588 256 FCFA`.
 - Couvaison : le jour de mise en couveuse est le **jour 0**, et l'éclosion tombe à la date d'entrée + la durée, comme dans le classeur `Gestion-couvoir-2026.xlsx`.
 - Jours de descente proposés par défaut, modifiables dans Paramètres : Goliath 16, poule 18, pintade, canard et dindon 25, canard de Barbarie 31 (35 jours d'incubation).

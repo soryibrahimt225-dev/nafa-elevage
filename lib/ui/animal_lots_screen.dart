@@ -258,7 +258,7 @@ class AnimalLotDetailScreen extends StatelessWidget {
             if (lot.status == LotStatus.enCours)
               FilledButton.icon(
                 key: const ValueKey('saisir-sortie'),
-                onPressed: () => _movementDialog(context),
+                onPressed: () => movementDialog(context),
                 icon: const Icon(Icons.remove_circle_outline),
                 label: const Text('Enregistrer une mortalité ou une sortie'),
               ),
@@ -292,7 +292,7 @@ class AnimalLotDetailScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _movementDialog(BuildContext context) async {
+  Future<void> movementDialog(BuildContext context) async {
     final count = TextEditingController();
     final note = TextEditingController();
     final form = GlobalKey<FormState>();

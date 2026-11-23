@@ -645,4 +645,78 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('Pintade · 28 jours'), findsOneWidget);
   });
+
+  testWidgets('Saisir : choix selon la production', (t) async {
+    final chair = await freshSettings({'nafa.production': 'chair'});
+    await pumpPhone(t, chair);
+    await t.tap(find.byKey(const ValueKey('saisir')));
+    await t.pumpAndSettle();
+    expect(find.text('Que voulez-vous saisir ?'), findsOneWidget);
+    expect(find.byKey(const ValueKey('saisir-mortalite')), findsOneWidget);
+    expect(find.byKey(const ValueKey('saisir-ponte')), findsNothing); // pas de ponte en chair
+    expect(find.byKey(const ValueKey('saisir-eclosion')), findsNothing);
+    // Aliment sans stock : message clair
+    await t.tap(find.byKey(const ValueKey('saisir-aliment')));
+    await t.pumpAndSettle();
+    expect(find.textContaining('Aucun aliment en stock'), findsOneWidget);
+  });
+
+  testWidgets('Saisir : mortalité du lot en deux appuis', (t) async {
+    final s = await freshSettings({
+      'nafa.production': 'chair',
+      'nafa.lots.v1': '{"animal":[{"id":"1","code":"CHA-26-001","production":"chair","breed":"Cobb 500",'
+          '"startDate":"2026-11-01","initialCount":200,"movements":[]}],"incubation":[]}',
+    });
+    await pumpPhone(t, s);
+    await t.tap(find.byKey(const ValueKey('saisir')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('saisir-mortalite')));
+    await t.pumpAndSettle(); // un seul lot : pris directement
+    await t.enterText(find.byKey(const ValueKey('nombre-sortie')), '6');
+    await t.tap(find.byKey(const ValueKey('valider-sortie')));
+    await t.pumpAndSettle();
+    expect(find.text('3,0\u00A0%'), findsOneWidget); // mortalité au tableau de bord
+    expect(find.text('194 sujets'), findsOneWidget);
+  });
+
+  testWidgets('Saisir : œufs ramassés (pondeuses), choix du lot', (t) async {
+    final s = await freshSettings({
+      'nafa.production': 'pondeuses',
+      'nafa.lots.v1': '{"animal":['
+          '{"id":"1","code":"PON-26-001","production":"pondeuses","breed":"ISA Brown","startDate":"2026-06-01","initialCount":500,"movements":[]},'
+          '{"id":"2","code":"PON-26-002","production":"pondeuses","breed":"Hisex","startDate":"2026-07-01","initialCount":300,"movements":[]}'
+          '],"incubation":[]}',
+    });
+    await pumpPhone(t, s);
+    await t.tap(find.byKey(const ValueKey('saisir')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('saisir-ponte')));
+    await t.pumpAndSettle();
+    expect(find.text('Quel lot ?'), findsOneWidget);
+    await t.tap(find.textContaining('PON-26-002'));
+    await t.pumpAndSettle();
+    await t.enterText(find.descendant(of: find.byKey(const ValueKey('ramasses')), matching: find.byType(EditableText)), '255');
+    await t.tap(find.byKey(const ValueKey('valider-ponte')));
+    await t.pumpAndSettle();
+    expect(find.text('255 œufs'), findsOneWidget);
+  });
+
+  testWidgets('Saisir : éclosion (couveuse)', (t) async {
+    final s = await freshSettings({
+      'nafa.production': 'couveuse',
+      'nafa.lots.v1': '{"animal":[],"incubation":[{"id":"1","code":"BUR-26-029","ownerType":"producteur",'
+          '"ownerName":"Producteur","speciesLabel":"Goliath","entryDate":"2026-11-01","eggsSet":128,'
+          '"incubationDays":21,"descenteDay":16}]}',
+    });
+    await pumpPhone(t, s);
+    await t.tap(find.byKey(const ValueKey('saisir')));
+    await t.pumpAndSettle();
+    expect(find.byKey(const ValueKey('saisir-ponte')), findsNothing);
+    await t.tap(find.byKey(const ValueKey('saisir-eclosion')));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('eclos')), '96');
+    await t.tap(find.byKey(const ValueKey('valider-eclosion')));
+    await t.pumpAndSettle();
+    expect(find.text('75,0\u00A0%'), findsOneWidget); // taux d'éclosion au tableau de bord
+  });
 }

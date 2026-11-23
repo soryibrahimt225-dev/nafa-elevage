@@ -368,7 +368,7 @@ class IncubationLotDetailScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 FilledButton.icon(
                   key: const ValueKey('saisir-eclosion'),
-                  onPressed: () => _hatchDialog(context),
+                  onPressed: () => hatchDialog(context),
                   icon: const Icon(Icons.egg_alt_outlined),
                   label: Text(lot.hasResult ? 'Corriger le résultat' : 'Enregistrer l’éclosion'),
                 ),
@@ -397,7 +397,7 @@ class IncubationLotDetailScreen extends StatelessWidget {
     ];
   }
 
-  Future<void> _hatchDialog(BuildContext context) async {
+  Future<void> hatchDialog(BuildContext context) async {
     final hatched = TextEditingController(text: lot.hatched?.toString() ?? '');
     final deaths = TextEditingController(text: lot.chickDeaths?.toString() ?? '');
     final form = GlobalKey<FormState>();

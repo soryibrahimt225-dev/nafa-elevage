@@ -19,13 +19,13 @@ class LayingScreen extends StatelessWidget {
 
   ProductionType get _production => data.settings.production!;
 
-  bool get _fertileEnabled =>
+  bool get fertileEnabled =>
       _production == ProductionType.ameliorees ||
       data.settings.options.contains(OptionalFeature.couveusePondeuses) ||
       data.settings.options.contains(OptionalFeature.couvaisonConversion);
 
   /// Lots concernés par la ponte.
-  List<AnimalLot> get _lots => data.lots
+  List<AnimalLot> get layingLots => data.lots
       .animalLots(_production)
       .where((l) =>
           l.status == LotStatus.enCours &&
@@ -36,7 +36,7 @@ class LayingScreen extends StatelessWidget {
   Widget build(BuildContext context) => ListenableBuilder(
         listenable: Listenable.merge([data.lots, data.eggs, data.finance]),
         builder: (context, _) {
-          final lots = _lots;
+          final lots = layingLots;
           final codes = {for (final l in lots) l.code};
           final weekStart = DateTime(today.year, today.month, today.day - 6);
           final week = EggSummary(data.eggs.between(codes, weekStart, today));
@@ -68,7 +68,7 @@ class LayingScreen extends StatelessWidget {
               SectionCard(title: '7 derniers jours', children: [
                 InfoRow('Œufs ramassés', formatInt(week.collected)),
                 InfoRow('Œufs cassés', '${formatInt(week.broken)} · ${formatPercent(week.brokenRate)}'),
-                if (_fertileEnabled) InfoRow('Œufs fertiles mis de côté', formatInt(week.fertile)),
+                if (fertileEnabled) InfoRow('Œufs fertiles mis de côté', formatInt(week.fertile)),
                 InfoRow('Œufs de table', formatInt(week.table)),
                 InfoRow('Œufs vendus', formatInt(sold)),
               ]),
@@ -82,7 +82,7 @@ class LayingScreen extends StatelessWidget {
                       : 'Créez un lot avec l’objectif « ponte » ou « reproduction » dans « Lots et sujets ».',
                 ),
               for (final l in lots) ...[
-                _LotLayingCard(screen: this, lot: l),
+                LotLayingCard(screen: this, lot: l),
                 const SizedBox(height: 8),
               ],
             ],
@@ -91,8 +91,8 @@ class LayingScreen extends StatelessWidget {
       );
 }
 
-class _LotLayingCard extends StatelessWidget {
-  const _LotLayingCard({required this.screen, required this.lot});
+class LotLayingCard extends StatelessWidget {
+  const LotLayingCard({super.key, required this.screen, required this.lot});
   final LayingScreen screen;
   final AnimalLot lot;
 
@@ -114,7 +114,7 @@ class _LotLayingCard extends StatelessWidget {
         Wrap(spacing: 8, runSpacing: 8, children: [
           FilledButton.icon(
             key: ValueKey('saisir-ponte-${lot.code}'),
-            onPressed: () => _entry(context, rec),
+            onPressed: () => entry(context, rec),
             icon: const Icon(Icons.egg_outlined),
             label: Text(rec == null ? 'Saisir la ponte' : 'Corriger la ponte'),
           ),
@@ -129,7 +129,7 @@ class _LotLayingCard extends StatelessWidget {
     );
   }
 
-  Future<void> _entry(BuildContext context, EggRecord? existing) async {
+  Future<void> entry(BuildContext context, EggRecord? existing) async {
     final collected = TextEditingController(text: existing?.collected.toString() ?? '');
     final broken = TextEditingController(text: existing?.broken.toString() ?? '');
     final fertile = TextEditingController(text: existing?.fertile.toString() ?? '');
@@ -149,7 +149,7 @@ class _LotLayingCard extends StatelessWidget {
               IntField(key: const ValueKey('ramasses'), controller: collected, label: 'Œufs ramassés', max: hens),
               const SizedBox(height: 12),
               IntField(key: const ValueKey('casses'), controller: broken, label: 'Œufs cassés', optional: true),
-              if (screen._fertileEnabled) ...[
+              if (screen.fertileEnabled) ...[
                 const SizedBox(height: 12),
                 IntField(controller: fertile, label: 'Œufs fertiles mis de côté', optional: true),
               ],

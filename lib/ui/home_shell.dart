@@ -13,6 +13,7 @@ import 'icons.dart';
 import 'incubation_lots_screen.dart';
 import 'laying_screen.dart';
 import 'monthly_production_screen.dart';
+import 'quick_entry.dart';
 import 'reports_screen.dart';
 import 'incubation_calculator.dart';
 import 'settings_screen.dart';
@@ -57,8 +58,13 @@ class _HomeShellState extends State<HomeShell> {
       today: widget.today ?? DateTime.now(),
     );
 
+    // Bouton principal « Saisir », sur l'écran d'accueil.
+    final fab = _current == AppModule.tableauDeBord
+        ? QuickEntryButton(data: widget.data, today: widget.today ?? DateTime.now())
+        : null;
     if (wide) {
       return Scaffold(
+        floatingActionButton: fab,
         body: Row(children: [
           SizedBox(width: 260, child: Material(color: NafaColors.surface, child: menu)),
           const VerticalDivider(width: 1, color: NafaColors.border),
@@ -67,6 +73,7 @@ class _HomeShellState extends State<HomeShell> {
       );
     }
     return Scaffold(
+      floatingActionButton: fab,
       appBar: AppBar(
         title: Text(_current.label, style: const TextStyle(fontWeight: FontWeight.w700)),
       ),

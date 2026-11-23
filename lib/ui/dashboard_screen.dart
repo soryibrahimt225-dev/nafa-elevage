@@ -199,7 +199,7 @@ class DashboardScreen extends StatelessWidget {
         }
 
         return ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96), // place pour le bouton « Saisir »
           children: [
             Text(
                 [
