@@ -537,4 +537,27 @@ void main() {
     await t.scrollUntilVisible(find.text('Soins des poussins gardés'), 150, scrollable: find.byType(Scrollable).first);
     expect(find.textContaining('EL-26-001 · Vaccin prévu'), findsOneWidget);
   });
+
+  testWidgets('Rapports : aperçu du rapport financier et du rapport du lot', (t) async {
+    final s = await freshSettings({
+      'nafa.production': 'chair',
+      'nafa.lots.v1': '{"animal":[{"id":"1","code":"CHA-26-001","production":"chair","breed":"Cobb 500",'
+          '"startDate":"2026-11-01","initialCount":200,"movements":[]}],"incubation":[]}',
+      'nafa.finance.v1': '{"sales":[{"id":"s","date":"2026-11-15","category":"sujets","quantity":50,"unitPrice":3500,'
+          '"production":"chair","lotCode":"CHA-26-001","client":"","discount":0,"amountPaid":175000}],"expenses":[]}',
+    });
+    await pumpPhone(t, s);
+    await openMenu(t, 'rapports');
+    expect(find.byKey(const ValueKey('rapport-ponte')), findsNothing); // pas de ponte pour la chair
+    expect(find.text('Rapport mensuel'), findsWidgets);
+    await t.scrollUntilVisible(find.text('175\u00A0000\u00A0FCFA').first, 150, scrollable: find.byType(Scrollable).first);
+    expect(find.text('175\u00A0000\u00A0FCFA'), findsWidgets);
+
+    await t.scrollUntilVisible(find.byKey(const ValueKey('rapport-lot')), -150, scrollable: find.byType(Scrollable).first);
+    await t.tap(find.byKey(const ValueKey('rapport-lot')));
+    await t.pumpAndSettle();
+    expect(find.text('Rapport du lot CHA-26-001'), findsOneWidget);
+    expect(find.byKey(const ValueKey('export-pdf')), findsOneWidget);
+    expect(find.byKey(const ValueKey('export-excel')), findsOneWidget);
+  });
 }

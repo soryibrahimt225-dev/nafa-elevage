@@ -12,6 +12,7 @@ import 'icons.dart';
 import 'incubation_lots_screen.dart';
 import 'laying_screen.dart';
 import 'monthly_production_screen.dart';
+import 'reports_screen.dart';
 import 'incubation_calculator.dart';
 import 'settings_screen.dart';
 import 'theme.dart';
@@ -144,6 +145,8 @@ class _ModulePage extends StatelessWidget {
       case AppModule.tableauDeBord:
         return DashboardScreen(
             store: lots, finance: finance, health: data.health, eggs: data.eggs, feed: data.feed, production: settings.production!, options: settings.options, today: today);
+      case AppModule.rapports:
+        return ReportsScreen(data: data, today: today);
       case AppModule.poussinsGardes:
         return ChickBandsScreen(data: data, today: today);
       case AppModule.alimentation:
@@ -172,30 +175,6 @@ class _ModulePage extends StatelessWidget {
         return IncubationCalculator(today: today, store: lots);
       case AppModule.parametres:
         return SettingsScreen(settings: settings, lots: lots);
-      default:
-        return _Placeholder(module: module);
     }
-  }
-}
-
-class _Placeholder extends StatelessWidget {
-  const _Placeholder({required this.module});
-  final AppModule module;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(moduleIcon(module), size: 40, color: NafaColors.textMuted),
-          const SizedBox(height: 12),
-          Text(module.label, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 6),
-          const Text('Ce module sera construit dans un prochain lot.',
-              textAlign: TextAlign.center, style: TextStyle(color: NafaColors.textMuted)),
-        ]),
-      ),
-    );
   }
 }
