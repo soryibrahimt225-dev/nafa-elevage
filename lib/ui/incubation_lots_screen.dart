@@ -7,6 +7,8 @@ import '../data/reminder_service.dart';
 import '../domain/format.dart';
 import '../domain/incubation.dart';
 import '../domain/lots.dart';
+import '../domain/production.dart';
+import 'app_scope.dart';
 import 'config_scope.dart';
 import 'reminder_scope.dart';
 import 'theme.dart';
@@ -358,6 +360,7 @@ class IncubationLotDetailScreen extends StatelessWidget {
                   InfoRow('Mortalité à l’éclosion', formatInt(lot.chickDeaths ?? 0),
                       valueColor: lot.suspiciousMortality ? NafaColors.urgent : null),
                   InfoRow('Poussins vivants', formatInt(lot.alive!)),
+                  if (lot.ownerType == OwnerType.producteur) ..._chickRows(context),
                   if (lot.suspiciousMortality)
                     const Text('À vérifier : tous les poussins éclos sont notés morts.',
                         style: TextStyle(color: NafaColors.urgent, fontWeight: FontWeight.w600)),
@@ -379,6 +382,19 @@ class IncubationLotDetailScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// Répartition des poussins : gardés en bande, vendus, disponibles.
+  List<Widget> _chickRows(BuildContext context) {
+    final data = AppScope.maybeOf(context);
+    if (data == null) return const [];
+    final b = ChickBalance(
+        lot: lot, bands: store.animalLots(ProductionType.couveuse), sold: data.finance.chicksSoldFrom(lot.code));
+    return [
+      InfoRow('Poussins gardés (bandes)', formatInt(b.kept)),
+      InfoRow('Poussins vendus', formatInt(b.sold)),
+      InfoRow('Poussins disponibles', formatInt(b.available), valueColor: b.available < 0 ? NafaColors.urgent : null),
+    ];
   }
 
   Future<void> _hatchDialog(BuildContext context) async {

@@ -176,7 +176,12 @@ void showError(BuildContext context, Object e) {
   final msg = e is ArgumentError ? '${e.message}' : '$e';
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(msg), backgroundColor: NafaColors.urgent));
+    ..showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: NafaColors.urgent,
+      behavior: SnackBarBehavior.floating,
+      showCloseIcon: true,
+    ));
 }
 
 void showInfo(BuildContext context, String msg) {

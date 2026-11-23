@@ -238,6 +238,8 @@ class AnimalLotDetailScreen extends StatelessWidget {
           children: [
             SectionCard(title: lot.breed, trailing: StatusChip.lot(lot.status), children: [
               InfoRow('Démarré le', formatDate(lot.startDate)),
+              if (lot.isChickBand)
+                InfoRow('Origine', lot.origins.entries.map((e) => '${e.key} : ${formatInt(e.value)}').join('\n')),
               InfoRow('Âge', '${lot.ageAt(today)} jours (${(lot.ageAt(today) / 7).toStringAsFixed(1).replaceAll('.', ',')} semaines)'),
               InfoRow('Effectif de départ', '${formatInt(lot.initialCount)} sujets'),
               InfoRow('Effectif actuel', '${formatInt(lot.current)} sujets'),

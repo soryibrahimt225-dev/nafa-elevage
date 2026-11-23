@@ -186,7 +186,7 @@ void main() {
     await t.tap(find.byKey(const ValueKey('valider-eclosion')));
     await t.pumpAndSettle();
     expect(find.text('75,0\u00A0%'), findsOneWidget);
-    expect(find.text('87'), findsOneWidget); // poussins vivants
+    expect(find.text('87'), findsNWidgets(2)); // poussins vivants et disponibles
     await t.tap(find.byType(BackButton));
     await t.pumpAndSettle();
     await openMenu(t, 'tableauDeBord');
@@ -446,5 +446,55 @@ void main() {
 
     await openMenu(t, 'depenses');
     expect(find.text('57\u00A0000\u00A0FCFA'), findsWidgets); // dépense créée avec l'achat
+  });
+
+  testWidgets('Couveuse : garder des poussins, puis vente limitée aux disponibles', (t) async {
+    final s = await freshSettings({
+      'nafa.production': 'couveuse',
+      'nafa.lots.v1': '{"animal":[],"incubation":[{"id":"1","code":"BUR-26-025","ownerType":"producteur",'
+          '"ownerName":"Producteur","speciesLabel":"Goliath","entryDate":"2026-10-18","eggsSet":107,'
+          '"incubationDays":21,"descenteDay":16,"hatched":75,"chickDeaths":0}]}',
+    });
+    await pumpPhone(t, s);
+    await openMenu(t, 'poussinsGardes');
+    expect(find.text('75 poussins'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('nouvelle-bande')));
+    await t.pumpAndSettle();
+    expect(find.text('EL-26-001'), findsOneWidget);
+    await enterKey(t, 'garder-BUR-26-025', '30');
+    await tapKey(t, 'enregistrer');
+    await t.pumpAndSettle();
+    await t.pump(const Duration(seconds: 4));
+    await t.pumpAndSettle();
+    expect(find.text('45 poussins'), findsOneWidget);
+    await t.scrollUntilVisible(find.textContaining('Origine : BUR-26-025 (30)'), 150,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.textContaining('Origine : BUR-26-025 (30)'), findsOneWidget);
+
+    await openMenu(t, 'ventes');
+    await t.tap(find.byKey(const ValueKey('nouvelle-vente')));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Aucun lot'));
+    await t.pumpAndSettle();
+    await t.tap(find.textContaining('BUR-26-025 · 45 poussins disponibles').last);
+    await t.pumpAndSettle();
+    await enterKey(t, 'quantite', '50');
+    await enterKey(t, 'prix', '700');
+    await tapKey(t, 'enregistrer');
+    await t.pumpAndSettle();
+    expect(find.textContaining('Il ne reste que 45 poussins disponibles'), findsOneWidget);
+    await t.pump(const Duration(seconds: 5)); // le message d'erreur disparaît
+    await t.pumpAndSettle();
+    await enterKey(t, 'quantite', '45');
+    await tapKey(t, 'enregistrer');
+    await t.pumpAndSettle();
+    await t.pump(const Duration(seconds: 4));
+    await t.pumpAndSettle();
+
+    await openMenu(t, 'poussinsGardes');
+    expect(find.textContaining('Aucun poussin à répartir'), findsOneWidget);
+    await openMenu(t, 'tableauDeBord');
+    await t.scrollUntilVisible(find.text('Poussins gardés'), 150, scrollable: find.byType(Scrollable).first);
+    expect(find.text('30 sujets'), findsOneWidget);
   });
 }

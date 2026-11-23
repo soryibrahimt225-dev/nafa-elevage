@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'data/app_data.dart';
 import 'data/device_reminder_backend.dart';
+import 'ui/app_scope.dart';
 import 'ui/config_scope.dart';
 import 'ui/reminder_scope.dart';
 import 'ui/home_shell.dart';
@@ -22,7 +23,9 @@ class NafaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ConfigScope(
+    return AppScope(
+      data: data,
+      child: ConfigScope(
       config: data.config,
       child: ReminderScope(
       reminders: data.reminders,
@@ -38,6 +41,7 @@ class NafaApp extends StatelessWidget {
         builder: (context, _) => data.settings.isConfigured
             ? HomeShell(data: data, today: today)
             : OnboardingScreen(settings: data.settings),
+      ),
       ),
       ),
       ),

@@ -56,7 +56,9 @@ enum LotStatus {
   final String label;
 }
 
-/// Lot de sujets (poulets de chair, races améliorées, pondeuses).
+/// Lot de sujets (poulets de chair, races améliorées, pondeuses), ou
+/// bande de poussins gardés issus de la couveuse (production couveuse,
+/// code EL-AA-NNN, avec ses lots d'origine).
 class AnimalLot {
   AnimalLot({
     required this.id,
@@ -69,9 +71,17 @@ class AnimalLot {
     List<Movement>? movements,
     this.closed = false,
     this.notes = '',
-  }) : movements = movements ?? [] {
+    Map<String, int>? origins,
+  })  : movements = movements ?? [],
+        origins = origins ?? const {} {
     if (production == ProductionType.couveuse) {
-      throw ArgumentError('Un lot de couveuse est un lot d’œufs, pas un lot de sujets.');
+      if (this.origins.isEmpty) {
+        throw ArgumentError('Une bande de poussins gardés doit venir d’au moins une éclosion.');
+      }
+      if (this.origins.values.any((n) => n <= 0)) throw ArgumentError('Nombre de poussins invalide.');
+      if (this.origins.values.fold(0, (s, n) => s + n) != initialCount) {
+        throw ArgumentError('L’effectif doit être égal au total des poussins repris des éclosions.');
+      }
     }
     if (initialCount <= 0) throw ArgumentError('L’effectif initial doit être supérieur à 0.');
     if (breed.trim().isEmpty) throw ArgumentError('Indiquez la race ou la souche.');
@@ -87,6 +97,12 @@ class AnimalLot {
   final List<Movement> movements;
   bool closed;
   String notes;
+
+  /// Bande de poussins gardés : poussins repris de chaque lot d'œufs
+  /// (code du lot → nombre).
+  final Map<String, int> origins;
+
+  bool get isChickBand => production == ProductionType.couveuse;
 
   int countOf(MovementType t) =>
       movements.where((m) => m.type == t).fold(0, (s, m) => s + m.count);
@@ -139,6 +155,7 @@ class AnimalLot {
         'movements': [for (final m in movements) m.toJson()],
         'closed': closed,
         'notes': notes,
+        if (origins.isNotEmpty) 'origins': origins,
       };
 
   factory AnimalLot.fromJson(Map<String, Object?> j) => AnimalLot(
@@ -155,6 +172,7 @@ class AnimalLot {
         ],
         closed: (j['closed'] as bool?) ?? false,
         notes: (j['notes'] as String?) ?? '',
+        origins: (j['origins'] as Map?)?.map((k, v) => MapEntry(k as String, v as int)),
       );
 }
 
@@ -276,7 +294,7 @@ String animalPrefix(ProductionType p) {
     case ProductionType.pondeuses:
       return 'PON';
     case ProductionType.couveuse:
-      throw ArgumentError('La couveuse utilise les préfixes BUR et CLI.');
+      return 'EL'; // bandes de poussins gardés (comme dans le classeur)
   }
 }
 
@@ -416,4 +434,23 @@ MonthlyHatch totalOf(Iterable<MonthlyHatch> rows) {
       ..alive += r.alive;
   }
   return t;
+}
+
+/// Répartition des poussins vivants d'un lot d'œufs : gardés en bande,
+/// vendus, et encore disponibles.
+class ChickBalance {
+  ChickBalance({required this.lot, required Iterable<AnimalLot> bands, required this.sold}) {
+    for (final b in bands) {
+      kept += b.origins[lot.code] ?? 0;
+    }
+  }
+
+  final IncubationLot lot;
+  int kept = 0;
+
+  /// Poussins vendus (ventes de poussins rattachées au lot).
+  final int sold;
+
+  int get alive => lot.alive ?? 0;
+  int get available => alive - kept - sold;
 }

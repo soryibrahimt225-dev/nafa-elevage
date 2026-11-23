@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../data/app_data.dart';
 import '../domain/production.dart';
 import 'animal_lots_screen.dart';
+import 'chick_bands_screen.dart';
 import 'dashboard_screen.dart';
 import 'feed_screen.dart';
 import 'finance_screens.dart';
@@ -143,6 +144,8 @@ class _ModulePage extends StatelessWidget {
       case AppModule.tableauDeBord:
         return DashboardScreen(
             store: lots, finance: finance, health: data.health, eggs: data.eggs, feed: data.feed, production: settings.production!, options: settings.options, today: today);
+      case AppModule.poussinsGardes:
+        return ChickBandsScreen(data: data, today: today);
       case AppModule.alimentation:
         return FeedScreen(data: data, today: today);
       case AppModule.ponteOeufs:

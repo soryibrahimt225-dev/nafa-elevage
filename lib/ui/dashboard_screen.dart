@@ -151,6 +151,19 @@ class DashboardScreen extends StatelessWidget {
                 ),
             ],
           ));
+          if (production == ProductionType.couveuse) {
+            final bands = store.animalLots(ProductionType.couveuse);
+            if (bands.isNotEmpty) {
+              final initial = bands.fold(0, (n, b) => n + b.initialCount);
+              final dead = bands.fold(0, (n, b) => n + b.dead);
+              children.add(SectionCard(title: 'Poussins gardés', children: [
+                InfoRow('Bandes en cours', formatInt(bands.where((b) => b.status == LotStatus.enCours).length)),
+                InfoRow('Poussins mis en élevage', formatInt(initial)),
+                InfoRow('Effectif actuel', '${formatInt(bands.fold(0, (n, b) => n + b.current))} sujets'),
+                InfoRow('Mortalité en élevage', formatPercent(dead / initial)),
+              ]));
+            }
+          }
           if (sum.toCheck > 0) {
             final toCheck = store.incubationLots
                 .where((l) => l.suspiciousMortality || (!l.hasResult && l.statusAt(today).name == 'aVerifier'))

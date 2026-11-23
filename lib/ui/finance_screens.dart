@@ -184,8 +184,8 @@ class _SaleFormState extends State<SaleForm> {
         ];
       case SaleCategory.poussins:
         return [
-          for (final l in c.lots.incubationLots.where((l) => l.hasResult).take(20))
-            (l.code, '${l.code} · ${formatInt(l.alive!)} poussins vivants'),
+          for (final l in c.lots.incubationLots.where((l) => l.hasResult))
+            if (_chicks(l).available > 0) (l.code, '${l.code} · ${formatInt(_chicks(l).available)} poussins disponibles'),
         ];
       case SaleCategory.serviceCouvaison:
         return [
@@ -196,6 +196,11 @@ class _SaleFormState extends State<SaleForm> {
         return const [];
     }
   }
+
+  ChickBalance _chicks(IncubationLot l) => ChickBalance(
+      lot: l,
+      bands: widget.ctx.lots.animalLots(ProductionType.couveuse),
+      sold: widget.ctx.finance.chicksSoldFrom(l.code));
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
@@ -215,6 +220,14 @@ class _SaleFormState extends State<SaleForm> {
         client: _client.text.trim(),
         description: _obs.text.trim(),
       );
+      // Poussins d'un lot d'œufs : pas plus que les poussins disponibles.
+      if (_category == SaleCategory.poussins && _lotCode != null) {
+        final lot = c.lots.incubationLots.firstWhere((l) => l.code == _lotCode);
+        final left = _chicks(lot).available;
+        if (sale.quantity > left) {
+          throw ArgumentError('Il ne reste que ${formatInt(left)} poussins disponibles dans le lot ${lot.code}.');
+        }
+      }
       // Vente de sujets liée à un lot : l'effectif du lot diminue.
       if (_category == SaleCategory.sujets && _lotCode != null) {
         final lot = c.lots.animalLots(c.production).firstWhere((l) => l.code == _lotCode);

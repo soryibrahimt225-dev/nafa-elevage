@@ -336,6 +336,7 @@ List<SaleCategory> saleCategoriesFor(ProductionType p, Set<OptionalFeature> opti
     case ProductionType.couveuse:
       return const [
         SaleCategory.poussins,
+        SaleCategory.sujets, // sujets élevés à partir des poussins gardés
         SaleCategory.serviceCouvaison,
         SaleCategory.oeufsFertiles,
         SaleCategory.alveoles,

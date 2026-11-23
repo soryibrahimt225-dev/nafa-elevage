@@ -39,6 +39,11 @@ class FinanceStore extends ChangeNotifier {
   List<String> get clients => {for (final s in _sales) if (s.client.isNotEmpty) s.client}.toList()..sort();
   List<String> get suppliers => {for (final e in _expenses) if (e.supplier.isNotEmpty) e.supplier}.toList()..sort();
 
+  /// Poussins vendus rattachés à un lot d'œufs.
+  int chicksSoldFrom(String lotCode) => _sales
+      .where((s) => s.category == SaleCategory.poussins && s.lotCode == lotCode)
+      .fold(0, (n, s) => n + s.quantity);
+
   /// Dernier prix pratiqué pour une catégorie (proposé par défaut).
   int? lastPrice(SaleCategory c) {
     for (final s in sales) {
