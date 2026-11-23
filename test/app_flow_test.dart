@@ -408,4 +408,43 @@ void main() {
         scrollable: find.byType(Scrollable).first);
     expect(find.textContaining('AME-26-002'), findsNothing);
   });
+
+  testWidgets('Alimentation : aliment, achat avec dépense, distribution par ration', (t) async {
+    final s = await freshSettings({
+      'nafa.production': 'pondeuses',
+      'nafa.lots.v1': '{"animal":[{"id":"1","code":"PON-26-001","production":"pondeuses","breed":"ISA Brown",'
+          '"startDate":"2026-06-01","initialCount":400,"movements":[]}],"incubation":[]}',
+    });
+    await pumpPhone(t, s);
+    await openMenu(t, 'alimentation');
+    expect(find.text('Aucun aliment'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('nouvel-aliment')));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('nom-aliment')), 'Aliment pondeuse');
+    await t.tap(find.byKey(const ValueKey('valider-aliment')));
+    await t.pumpAndSettle();
+
+    await tapKey(t, 'achat-Aliment pondeuse');
+    await t.pumpAndSettle();
+    await t.enterText(find.descendant(of: find.byKey(const ValueKey('sacs')), matching: find.byType(EditableText)), '2');
+    await t.enterText(find.descendant(of: find.byKey(const ValueKey('prix-sac')), matching: find.byType(EditableText)), '28500');
+    await t.tap(find.byKey(const ValueKey('valider-achat')));
+    await t.pumpAndSettle();
+    expect(find.textContaining('100\u00A0kg · 2,0 sac(s)'), findsOneWidget);
+
+    await tapKey(t, 'distribuer-Aliment pondeuse');
+    await t.pumpAndSettle();
+    await t.enterText(find.descendant(of: find.byKey(const ValueKey('g-par-sujet')), matching: find.byType(EditableText)), '115');
+    await t.pumpAndSettle();
+    await t.tap(find.textContaining('Calculer : 400 × 115 g = 46\u00A0kg'));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('valider-distribution')));
+    await t.pumpAndSettle();
+    expect(find.textContaining('54\u00A0kg · 1,1 sac(s)'), findsOneWidget);
+    await t.scrollUntilVisible(find.text('Consommation par lot'), 150, scrollable: find.byType(Scrollable).first);
+    expect(find.textContaining('46\u00A0kg · 26\u00A0220\u00A0FCFA'), findsOneWidget); // 46 kg × 570 FCFA/kg
+
+    await openMenu(t, 'depenses');
+    expect(find.text('57\u00A0000\u00A0FCFA'), findsWidgets); // dépense créée avec l'achat
+  });
 }

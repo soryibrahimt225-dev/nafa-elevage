@@ -1,11 +1,13 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../data/egg_store.dart';
+import '../data/feed_store.dart';
 import '../data/finance_store.dart';
 import '../data/health_store.dart';
 import '../data/lot_store.dart';
 import '../domain/finance.dart';
 import '../domain/eggs.dart';
+import '../domain/feed.dart';
 import '../domain/format.dart';
 import '../domain/health.dart';
 import '../domain/lots.dart';
@@ -23,6 +25,7 @@ class DashboardScreen extends StatelessWidget {
     required this.finance,
     required this.health,
     required this.eggs,
+    required this.feed,
     required this.production,
     required this.options,
     required this.today,
@@ -31,6 +34,7 @@ class DashboardScreen extends StatelessWidget {
   final FinanceStore finance;
   final HealthStore health;
   final EggStore eggs;
+  final FeedStore feed;
   final ProductionType production;
   final Set<OptionalFeature> options;
   final DateTime today;
@@ -43,7 +47,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([store, finance, health, eggs]),
+      listenable: Listenable.merge([store, finance, health, eggs, feed]),
       builder: (context, _) {
         final total = finance.accounting().global;
         final month = finance.accounting(Period.month(today)).global;
@@ -78,6 +82,21 @@ class DashboardScreen extends StatelessWidget {
             final st = r.statusAt(today);
             return st == HealthStatus.enRetard || st == HealthStatus.aujourdhui;
           }).toList();
+          final low = feed.stocks.values.where((s) => s.low).toList();
+          final monthGrams = feed.moves
+              .where((m) =>
+                  m.type == FeedMoveType.distribution &&
+                  m.date.year == today.year &&
+                  m.date.month == today.month &&
+                  lots.any((l) => l.code == m.lotCode))
+              .fold(0, (n, m) => n + m.grams);
+          if (feed.items.isNotEmpty) {
+            children.add(SectionCard(title: 'Alimentation', children: [
+              InfoRow('Distribué ce mois-ci', formatKg(monthGrams)),
+              for (final s in low)
+                InfoRow('Stock bas : ${s.item.name}', formatKg(s.remainingGrams), valueColor: NafaColors.urgent),
+            ]));
+          }
           children.add(SectionCard(
             title: 'Soins du jour et en retard',
             children: [

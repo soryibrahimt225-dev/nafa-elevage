@@ -1,5 +1,6 @@
 import 'config_store.dart';
 import 'egg_store.dart';
+import 'feed_store.dart';
 import 'finance_store.dart';
 import 'health_store.dart';
 import 'lot_store.dart';
@@ -16,6 +17,7 @@ class AppData {
     required this.health,
     required this.reminders,
     required this.eggs,
+    required this.feed,
   });
 
   final FarmSettings settings;
@@ -25,6 +27,7 @@ class AppData {
   final HealthStore health;
   final ReminderService reminders;
   final EggStore eggs;
+  final FeedStore feed;
 
   /// [backend] : accès à l'agenda et aux notifications du téléphone
   /// (remplacé sur le web et dans les tests).
@@ -36,5 +39,6 @@ class AppData {
         health: await HealthStore.load(),
         reminders: await ReminderService.load(backend ?? UnsupportedReminderBackend()),
         eggs: await EggStore.load(),
+        feed: await FeedStore.load(),
       );
 }

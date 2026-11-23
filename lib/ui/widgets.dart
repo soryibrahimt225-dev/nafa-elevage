@@ -108,6 +108,7 @@ class IntField extends StatelessWidget {
     this.optional = false,
     this.min = 0,
     this.max,
+    this.onChanged,
   });
   final TextEditingController controller;
   final String label;
@@ -115,10 +116,12 @@ class IntField extends StatelessWidget {
   final bool optional;
   final int min;
   final int? max;
+  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) => TextFormField(
         controller: controller,
+        onChanged: onChanged,
         keyboardType: TextInputType.number,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         decoration: InputDecoration(

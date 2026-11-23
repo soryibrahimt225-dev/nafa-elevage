@@ -4,6 +4,7 @@ import '../data/app_data.dart';
 import '../domain/production.dart';
 import 'animal_lots_screen.dart';
 import 'dashboard_screen.dart';
+import 'feed_screen.dart';
 import 'finance_screens.dart';
 import 'health_screen.dart';
 import 'icons.dart';
@@ -141,7 +142,9 @@ class _ModulePage extends StatelessWidget {
     switch (module) {
       case AppModule.tableauDeBord:
         return DashboardScreen(
-            store: lots, finance: finance, health: data.health, eggs: data.eggs, production: settings.production!, options: settings.options, today: today);
+            store: lots, finance: finance, health: data.health, eggs: data.eggs, feed: data.feed, production: settings.production!, options: settings.options, today: today);
+      case AppModule.alimentation:
+        return FeedScreen(data: data, today: today);
       case AppModule.ponteOeufs:
       case AppModule.ponteReforme:
         return LayingScreen(data: data, today: today);
