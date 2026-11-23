@@ -466,6 +466,7 @@ void main() {
     await t.pumpAndSettle();
     await t.pump(const Duration(seconds: 4));
     await t.pumpAndSettle();
+    await t.scrollUntilVisible(find.text('45 poussins'), 150, scrollable: find.byType(Scrollable).first);
     expect(find.text('45 poussins'), findsOneWidget);
     await t.scrollUntilVisible(find.textContaining('Origine : BUR-26-025 (30)'), 150,
         scrollable: find.byType(Scrollable).first);
@@ -492,9 +493,48 @@ void main() {
     await t.pumpAndSettle();
 
     await openMenu(t, 'poussinsGardes');
+    await t.scrollUntilVisible(find.textContaining('Aucun poussin à répartir'), 150,
+        scrollable: find.byType(Scrollable).first);
     expect(find.textContaining('Aucun poussin à répartir'), findsOneWidget);
     await openMenu(t, 'tableauDeBord');
     await t.scrollUntilVisible(find.text('Poussins gardés'), 150, scrollable: find.byType(Scrollable).first);
     expect(find.text('30 sujets'), findsOneWidget);
+  });
+
+  testWidgets('Poussins gardés : vaccination des bandes, sans vaccination dans le menu couveuse', (t) async {
+    final s = await freshSettings({
+      'nafa.production': 'couveuse',
+      'nafa.lots.v1': '{"animal":[{"id":"b1","code":"EL-26-001","production":"couveuse","breed":"Goliath",'
+          '"startDate":"2026-11-03","initialCount":30,"movements":[],"origins":{"BUR-26-025":30}}],'
+          '"incubation":[{"id":"1","code":"BUR-26-025","ownerType":"producteur","ownerName":"Producteur",'
+          '"speciesLabel":"Goliath","entryDate":"2026-10-18","eggsSet":107,"incubationDays":21,"descenteDay":16,'
+          '"hatched":75,"chickDeaths":0}]}',
+    });
+    await pumpPhone(t, s);
+    await t.tap(find.byType(DrawerButton));
+    await t.pumpAndSettle();
+    expect(find.text('Santé et vaccination'), findsNothing); // toujours absent du menu
+    await t.tap(find.byKey(const ValueKey('menu-poussinsGardes')));
+    await t.pumpAndSettle();
+
+    await tapKey(t, 'sante-bandes');
+    await t.pumpAndSettle();
+    expect(find.text('Santé des poussins gardés'), findsWidgets);
+    await t.tap(find.byKey(const ValueKey('nouveau-soin')));
+    await t.pumpAndSettle();
+    await enterKey(t, 'soin-nom', 'Vaccin prévu par le vétérinaire');
+    expect(find.text('Âge du lot à cette date : 19 jours'), findsOneWidget);
+    await tapKey(t, 'enregistrer');
+    await t.pumpAndSettle();
+    expect(find.text('Aujourd’hui'), findsOneWidget);
+    await t.tap(find.byType(BackButton));
+    await t.pumpAndSettle();
+    await t.scrollUntilVisible(find.text('Santé et vaccination des bandes'), 150,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.text('Santé et vaccination des bandes'), findsOneWidget);
+
+    await openMenu(t, 'tableauDeBord');
+    await t.scrollUntilVisible(find.text('Soins des poussins gardés'), 150, scrollable: find.byType(Scrollable).first);
+    expect(find.textContaining('EL-26-001 · Vaccin prévu'), findsOneWidget);
   });
 }

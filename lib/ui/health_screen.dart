@@ -16,8 +16,9 @@ StatusChip healthChip(HealthStatus s) => StatusChip(s.label, switch (s) {
       HealthStatus.realise => NafaColors.done,
     });
 
-/// Santé et vaccination (chair, races améliorées, pondeuses ; jamais la
-/// couveuse). Structure de suivi seulement : aucune prescription proposée.
+/// Santé et vaccination (chair, races améliorées, pondeuses, et bandes de
+/// poussins gardés de la couveuse — jamais les lots d'œufs).
+/// Structure de suivi seulement : aucune prescription proposée.
 class HealthScreen extends StatelessWidget {
   const HealthScreen({
     super.key,
@@ -52,7 +53,8 @@ class HealthScreen extends StatelessWidget {
             body: ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
               children: [
-                const Text('Santé et vaccination', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+                Text(production == ProductionType.couveuse ? 'Santé des poussins gardés' : 'Santé et vaccination',
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 Text(late > 0 ? '$late soin(s) en retard' : 'Aucun soin en retard',
                     style: TextStyle(color: late > 0 ? NafaColors.urgent : NafaColors.textMuted, fontWeight: FontWeight.w600)),
@@ -69,10 +71,12 @@ class HealthScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 if (animalLots.isEmpty)
-                  const EmptyState(
+                  EmptyState(
                     icon: Icons.medical_services_outlined,
                     title: 'Aucun lot',
-                    message: 'Créez d’abord un lot dans « Lots et sujets ».',
+                    message: production == ProductionType.couveuse
+                        ? 'Créez d’abord une bande dans « Poussins gardés ».'
+                        : 'Créez d’abord un lot dans « Lots et sujets ».',
                   )
                 else if (records.isEmpty)
                   const EmptyState(

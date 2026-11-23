@@ -162,6 +162,19 @@ class DashboardScreen extends StatelessWidget {
                 InfoRow('Effectif actuel', '${formatInt(bands.fold(0, (n, b) => n + b.current))} sujets'),
                 InfoRow('Mortalité en élevage', formatPercent(dead / initial)),
               ]));
+              // Soins des bandes (jamais des lots d'œufs).
+              final care = health.forLots({for (final b in bands) b.code}, today).where((r) {
+                final st = r.statusAt(today);
+                return st == HealthStatus.enRetard || st == HealthStatus.aujourdhui;
+              }).toList();
+              if (care.isNotEmpty) {
+                children.add(SectionCard(title: 'Soins des poussins gardés', children: [
+                  for (final r in care.take(6))
+                    InfoRow('${r.lotCode} · ${r.title}',
+                        r.statusAt(today) == HealthStatus.enRetard ? 'en retard (${r.lateDays(today)} j)' : 'aujourd’hui',
+                        valueColor: r.statusAt(today) == HealthStatus.enRetard ? NafaColors.urgent : NafaColors.watch),
+                ]));
+              }
             }
           }
           if (sum.toCheck > 0) {

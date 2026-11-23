@@ -2,9 +2,11 @@ import 'package:material_ui/material_ui.dart';
 
 import '../data/app_data.dart';
 import '../domain/format.dart';
+import '../domain/health.dart';
 import '../domain/lots.dart';
 import '../domain/production.dart';
 import 'animal_lots_screen.dart';
+import 'health_screen.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -29,7 +31,7 @@ class ChickBandsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-        listenable: Listenable.merge([data.lots, data.finance]),
+        listenable: Listenable.merge([data.lots, data.finance, data.health]),
         builder: (context, _) {
           final bands = _bands;
           final active = bands.where((b) => b.status == LotStatus.enCours).toList();
@@ -59,6 +61,10 @@ class ChickBandsScreen extends StatelessWidget {
                   InfoRow('Effectif actuel', '${formatInt(active.fold(0, (s, b) => s + b.current))} sujets'),
                   InfoRow('Mortalité en élevage', initial == 0 ? '—' : '${formatInt(dead)} · ${formatPercent(dead / initial)}'),
                 ]),
+                if (bands.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _HealthCard(screen: this, bands: bands),
+                ],
                 const SizedBox(height: 12),
                 SectionCard(title: 'Poussins disponibles après éclosion', children: [
                   if (avail.isEmpty)
@@ -237,5 +243,40 @@ class _ChickBandFormState extends State<ChickBandForm> {
         ),
       ),
     );
+  }
+}
+
+/// Accès à la santé et à la vaccination des bandes (et seulement des
+/// bandes : les lots d'œufs n'ont pas de vaccination).
+class _HealthCard extends StatelessWidget {
+  const _HealthCard({required this.screen, required this.bands});
+  final ChickBandsScreen screen;
+  final List<AnimalLot> bands;
+
+  @override
+  Widget build(BuildContext context) {
+    final today = screen.today;
+    final records = screen.data.health.forLots({for (final b in bands) b.code}, today);
+    final late = records.where((r) => r.statusAt(today) == HealthStatus.enRetard).length;
+    final todayCount = records.where((r) => r.statusAt(today) == HealthStatus.aujourdhui).length;
+    final next = records.where((r) => r.statusAt(today) == HealthStatus.aVenir).firstOrNull;
+    return SectionCard(title: 'Santé et vaccination des bandes', children: [
+      InfoRow('En retard', formatInt(late), valueColor: late > 0 ? NafaColors.urgent : null),
+      InfoRow('Aujourd’hui', formatInt(todayCount), valueColor: todayCount > 0 ? NafaColors.watch : null),
+      if (next != null) InfoRow('Prochain soin', '${next.lotCode} · ${next.title} · ${formatDate(next.plannedDate)}'),
+      const SizedBox(height: 8),
+      FilledButton.icon(
+        key: const ValueKey('sante-bandes'),
+        onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => Scaffold(
+            appBar: AppBar(title: const Text('Santé des poussins gardés')),
+            body: HealthScreen(
+                health: screen.data.health, lots: screen.data.lots, production: ProductionType.couveuse, today: today),
+          ),
+        )),
+        icon: const Icon(Icons.medical_services_outlined),
+        label: const Text('Voir et prévoir les soins'),
+      ),
+    ]);
   }
 }
