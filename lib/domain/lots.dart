@@ -94,6 +94,13 @@ class AnimalLot {
   int get exits => movements.fold(0, (s, m) => s + m.count);
   int get current => initialCount - exits;
 
+  /// Effectif à une date (sorties enregistrées jusqu'à ce jour compris).
+  int countAt(DateTime date) {
+    final d = _day(date);
+    return initialCount -
+        movements.where((m) => !_day(m.date).isAfter(d)).fold(0, (s, m) => s + m.count);
+  }
+
   /// Mortalité cumulée / effectif initial.
   double get mortalityRate => dead / initialCount;
 

@@ -14,6 +14,7 @@ Nafa Élevage est une application web et mobile (Flutter) de gestion d'élevage,
 | 6 | Ventes (remise explicite, encaissements), dépenses (générales ou par production/lot), comptabilité générale (par production, par lot, par mois) | ✅ livré |
 | 7 | Production mensuelle de la couveuse, comparatif producteur / client | ✅ livré |
 | 8 | Agenda du téléphone (Android et iPhone, sans Google Agenda) et notifications locales en repli ; réglages heure / veille ; suppression à l'éclosion | ✅ livré (à valider sur téléphone) |
+| 8 bis | Ponte et œufs (pondeuses) ; ponte, maintien et réforme (races améliorées) : ramassage quotidien, cassés, fertiles, taux de ponte, réforme décidée par le producteur | ✅ livré |
 | 9 | Paramètres : espèces de couvaison (durée, jour de descente), races, prix de référence, cycle des races améliorées | ✅ livré |
 | 10 | Rapports, sauvegarde et synchronisation | à venir |
 

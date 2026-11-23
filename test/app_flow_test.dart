@@ -360,4 +360,52 @@ void main() {
     expect(phone.notifications.length, 2);
     expect(find.textContaining('Agenda refusé : 2 notification(s)'), findsOneWidget);
   });
+
+  testWidgets('Pondeuses : saisir la ponte, réformer, tableau de bord', (t) async {
+    final s = await freshSettings({
+      'nafa.production': 'pondeuses',
+      'nafa.lots.v1': '{"animal":[{"id":"1","code":"PON-26-001","production":"pondeuses","breed":"ISA Brown",'
+          '"startDate":"2026-06-01","initialCount":500,"movements":[]}],"incubation":[]}',
+    });
+    await pumpPhone(t, s);
+    await openMenu(t, 'ponteOeufs');
+    expect(find.text('pas encore saisi'), findsOneWidget);
+    await tapKey(t, 'saisir-ponte-PON-26-001');
+    await t.pumpAndSettle();
+    await t.enterText(find.descendant(of: find.byKey(const ValueKey('ramasses')), matching: find.byType(EditableText)), '501');
+    await t.tap(find.byKey(const ValueKey('valider-ponte')));
+    await t.pumpAndSettle();
+    expect(find.text('Maximum : 500'), findsOneWidget); // pas plus d'œufs que de sujets
+    await t.enterText(find.descendant(of: find.byKey(const ValueKey('ramasses')), matching: find.byType(EditableText)), '430');
+    await t.tap(find.byKey(const ValueKey('valider-ponte')));
+    await t.pumpAndSettle();
+    expect(find.textContaining('430 œufs · 86,0'), findsOneWidget);
+
+    await tapKey(t, 'reformer-PON-26-001');
+    await t.pumpAndSettle();
+    await t.enterText(find.descendant(of: find.byKey(const ValueKey('nombre-reforme')), matching: find.byType(EditableText)), '20');
+    await t.tap(find.byKey(const ValueKey('valider-reforme')));
+    await t.pumpAndSettle();
+    expect(find.textContaining('480 · '), findsOneWidget);
+
+    await openMenu(t, 'tableauDeBord');
+    expect(find.text('430 œufs'), findsOneWidget);
+  });
+
+  testWidgets('Races améliorées : seuls les lots gardés pour la ponte apparaissent', (t) async {
+    final s = await freshSettings({
+      'nafa.production': 'ameliorees',
+      'nafa.lots.v1': '{"animal":['
+          '{"id":"1","code":"AME-26-001","production":"ameliorees","breed":"Goliath","startDate":"2026-05-01","initialCount":60,"objective":"ponte","movements":[]},'
+          '{"id":"2","code":"AME-26-002","production":"ameliorees","breed":"Goliath","startDate":"2026-09-01","initialCount":80,"objective":"engraissement","movements":[]}'
+          '],"incubation":[]}',
+    });
+    await pumpPhone(t, s);
+    await openMenu(t, 'ponteReforme');
+    await t.scrollUntilVisible(find.textContaining('AME-26-001'), 150, scrollable: find.byType(Scrollable).first);
+    expect(find.textContaining('AME-26-001'), findsOneWidget);
+    await t.scrollUntilVisible(find.byKey(const ValueKey('reformer-AME-26-001')), 150,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.textContaining('AME-26-002'), findsNothing);
+  });
 }

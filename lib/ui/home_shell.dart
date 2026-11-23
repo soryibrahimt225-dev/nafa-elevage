@@ -8,6 +8,7 @@ import 'finance_screens.dart';
 import 'health_screen.dart';
 import 'icons.dart';
 import 'incubation_lots_screen.dart';
+import 'laying_screen.dart';
 import 'monthly_production_screen.dart';
 import 'incubation_calculator.dart';
 import 'settings_screen.dart';
@@ -140,7 +141,10 @@ class _ModulePage extends StatelessWidget {
     switch (module) {
       case AppModule.tableauDeBord:
         return DashboardScreen(
-            store: lots, finance: finance, health: data.health, production: settings.production!, options: settings.options, today: today);
+            store: lots, finance: finance, health: data.health, eggs: data.eggs, production: settings.production!, options: settings.options, today: today);
+      case AppModule.ponteOeufs:
+      case AppModule.ponteReforme:
+        return LayingScreen(data: data, today: today);
       case AppModule.sante:
         return HealthScreen(health: data.health, lots: lots, production: settings.production!, today: today);
       case AppModule.productionMensuelle:

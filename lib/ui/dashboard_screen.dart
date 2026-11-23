@@ -1,9 +1,11 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../data/egg_store.dart';
 import '../data/finance_store.dart';
 import '../data/health_store.dart';
 import '../data/lot_store.dart';
 import '../domain/finance.dart';
+import '../domain/eggs.dart';
 import '../domain/format.dart';
 import '../domain/health.dart';
 import '../domain/lots.dart';
@@ -20,6 +22,7 @@ class DashboardScreen extends StatelessWidget {
     required this.store,
     required this.finance,
     required this.health,
+    required this.eggs,
     required this.production,
     required this.options,
     required this.today,
@@ -27,6 +30,7 @@ class DashboardScreen extends StatelessWidget {
   final LotStore store;
   final FinanceStore finance;
   final HealthStore health;
+  final EggStore eggs;
   final ProductionType production;
   final Set<OptionalFeature> options;
   final DateTime today;
@@ -39,7 +43,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([store, finance, health]),
+      listenable: Listenable.merge([store, finance, health, eggs]),
       builder: (context, _) {
         final total = finance.accounting().global;
         final month = finance.accounting(Period.month(today)).global;
@@ -62,6 +66,14 @@ class DashboardScreen extends StatelessWidget {
             ('Lots en cours', formatInt(active.length), '${formatInt(lots.length)} au total'),
             ('Mortalité', initial == 0 ? '—' : formatPercent(dead / initial), '${formatInt(dead)} sujets morts'),
           ]);
+          if (production == ProductionType.pondeuses) {
+            final codes = {for (final l in active) l.code};
+            final collected = eggs.between(codes, today, today).fold(0, (n, r) => n + r.collected);
+            kpis.addAll([
+              ('Œufs du jour', '${formatInt(collected)} œufs', null),
+              ('Taux de ponte', formatPercent(layingRate(collected, active.fold(0, (n, l) => n + l.current))), 'aujourd’hui'),
+            ]);
+          }
           final care = health.forLots({for (final l in lots) l.code}, today).where((r) {
             final st = r.statusAt(today);
             return st == HealthStatus.enRetard || st == HealthStatus.aujourdhui;
